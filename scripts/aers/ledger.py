@@ -268,16 +268,18 @@ class Ledger:
         if not row or not status_row:
             raise ValueError("No prior run recorded; nothing to requeue")
         current = status_row["status"]
-        if force and current in self.FORCE_RECOVERABLE:
-            with self.connect() as conn:
-                conn.execute("UPDATE tasks SET status='pending', candidate_sha=NULL, lease_owner=NULL, attempts=0 WHERE feature_id=? AND task_id=?",
-                             (feature_id, task_id))
-            self.append_event(row["run_id"], "state_transition",
-                              {"from": current, "to": "pending", "requeue": True, "forced": True, "reason": reason.strip()})
-            return
-        if force:
+        if not force and current != "author_ready":
+            raise ValueError(f"Invalid requeue from {current}; use --force to recover a stuck/parked task")
+        if force and current not in self.FORCE_RECOVERABLE:
             raise ValueError(f"--force cannot recover a terminal state: {current}")
-        self.transition(feature_id, task_id, "pending", row["run_id"], {"requeue": True, "reason": reason.strip()})
+        # Single compare-and-set: the status flip AND the candidate/lease/attempt
+        # clear are one atomic UPDATE guarded on the observed state, so a crash
+        # or a concurrent lease cannot leave a half-requeued row.
         with self.connect() as conn:
-            conn.execute("UPDATE tasks SET candidate_sha=NULL, lease_owner=NULL, attempts=0 WHERE feature_id=? AND task_id=?",
-                         (feature_id, task_id))
+            cursor = conn.execute(
+                "UPDATE tasks SET status='pending', candidate_sha=NULL, lease_owner=NULL, attempts=0 "
+                "WHERE feature_id=? AND task_id=? AND status=?", (feature_id, task_id, current))
+            if cursor.rowcount != 1:
+                raise ValueError(f"Requeue lost a race: task left state {current}")
+        self.append_event(row["run_id"], "state_transition",
+                          {"from": current, "to": "pending", "requeue": True, "forced": force, "reason": reason.strip()})

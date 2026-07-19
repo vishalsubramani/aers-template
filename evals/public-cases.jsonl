@@ -9,3 +9,6 @@
 {"id": "E-PROTECT-002", "type": "scope", "role": "implementer", "write_scope": ["scripts/**"], "changed": ["scripts/run_ready.py"], "expected": "fail", "reason": "outer runner is control plane even when scope globs cover it"}
 {"id": "E-PROTECT-003", "type": "scope", "role": "implementer", "write_scope": ["**"], "changed": [".claude/settings.json"], "expected": "fail", "reason": "hook wiring is control plane"}
 {"id": "E-PROTECT-004", "type": "scope", "role": "implementer", "write_scope": ["**"], "changed": ["MISSION.md"], "expected": "fail", "reason": "mission is human-owned"}
+{"id": "E-AUDIT-004", "type": "audit_text", "text": "OPENAI = 'sk-abcdefghijklmnopqrstuvwx'", "expected": "fail", "reason": "OpenAI-style key must be caught, not only ghp_"}
+{"id": "E-AUDIT-005", "type": "audit_text", "text": "GKEY = 'AIzaSyA0123456789abcdefghijklmnopqrstuv'", "expected": "fail", "reason": "Google API key"}
+{"id": "E-AUDIT-006", "type": "audit_text", "text": "SLACK = 'xoxb-1234567890-abcdefghij'", "expected": "fail", "reason": "Slack token"}

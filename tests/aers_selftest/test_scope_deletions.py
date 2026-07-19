@@ -96,6 +96,40 @@ class DeletionScopeTests(unittest.TestCase):
             self.assertNotIn("OUTSIDE_WRITE_SCOPE", {f["code"] for f in report.findings})
 
 
+class BudgetAndRoleTests(unittest.TestCase):
+    def test_line_budget_exceeded_fails(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo, base = scaffold(td, ["src/**"])
+            # tiny budget, then a large change
+            tp = repo / ".specify/specs/FEAT-X/tasks.json"
+            doc = json.loads(tp.read_text())
+            doc["tasks"][0]["budget"]["max_lines"] = 3
+            tp.write_text(json.dumps(doc))
+            git(repo, "commit", "-aqm", "tighten budget")
+            base2 = git(repo, "rev-parse", "HEAD")
+            (repo / "src/big.py").write_text("\n".join(f"x{i} = {i}" for i in range(50)) + "\n")
+            git(repo, "add", "-A")
+            git(repo, "commit", "-qm", "big change")
+            report = evaluate_scope(repo, "FEAT-X", "T-001", base2, contract_ref=base2)
+            self.assertIn("DIFF_LINE_BUDGET", {f["code"] for f in report.findings})
+            self.assertFalse(report.passed)
+
+    def test_read_only_role_write_is_blocked(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo, base = scaffold(td, ["src/**"])
+            tp = repo / ".specify/specs/FEAT-X/tasks.json"
+            doc = json.loads(tp.read_text())
+            doc["tasks"][0]["role"] = "reviewer"
+            tp.write_text(json.dumps(doc))
+            git(repo, "commit", "-aqm", "reviewer role")
+            base2 = git(repo, "rev-parse", "HEAD")
+            (repo / "src/app.py").write_text("x = 99\n")
+            git(repo, "commit", "-aqm", "reviewer wrote code")
+            report = evaluate_scope(repo, "FEAT-X", "T-001", base2, contract_ref=base2)
+            self.assertIn("READ_ONLY_ROLE_WROTE", {f["code"] for f in report.findings})
+            self.assertFalse(report.passed)
+
+
 class SymlinkEscapeTests(unittest.TestCase):
     def test_symlink_escaping_repo_is_flagged(self):
         with tempfile.TemporaryDirectory() as outer:

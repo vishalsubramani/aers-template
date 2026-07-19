@@ -119,8 +119,13 @@ export AERS_NETWORK_ISOLATED=1   # only if your host lacks Linux user namespaces
 python3 scripts/run_ready.py --feature FEAT-001 --max-runs 4
 ```
 
-On Linux, drop the `AERS_NETWORK_ISOLATED` line: verification proves isolation
-itself with `unshare` network namespaces and fails closed otherwise.
+On Linux with unprivileged user namespaces enabled, drop the
+`AERS_NETWORK_ISOLATED` line — verification proves isolation itself with
+`unshare` and fails closed otherwise. Note some distros (e.g. Ubuntu 24.04)
+restrict unprivileged userns by default; enable it with
+`sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`, or keep the
+assertion line for the offline demo (`.github/workflows/aers-demo.yml` shows
+the CI setup).
 
 Then watch it catch attacks (a test-loosening implementer, a
 non-discriminating test) — `TUTORIAL.md` Part 2.
