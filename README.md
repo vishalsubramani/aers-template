@@ -67,11 +67,14 @@ instead of lowering a gate to finish.
 - **Typed intent** — feature and task contracts (JSON Schema-validated), EARS
   acceptance criteria, risk tiers and spec modes, immutable once registered
 - **Committed engineering doctrine** — a protected school of thought
-  (`.agents/doctrine/`): 21 architecture axioms, 18 data-modeling and
-  migration rules, and a 19-pattern default library. Plans cite the IDs they
-  apply; deviations need an accepted ADR; kickoff derives foundation ADRs
-  (architecture + data baselines) before the first feature, so structure and
-  data shape are decided deliberately, never improvised mid-task
+  (`.agents/doctrine/`): 22 architecture axioms, 18 data-modeling and
+  migration rules, a 20-pattern default library, and 6 contextual decision
+  frameworks with a design interrogation — distilled from SWE-at-Google, the
+  Amazon Builders' Library, Google SRE, the Azure pattern catalog, and OWASP
+  (see `sources.md`). Plans cite the IDs they apply; deviations need an
+  accepted ADR; kickoff derives foundation ADRs (architecture, data, and
+  security baselines) before the first feature, so structure, data shape, and
+  security posture are decided deliberately, never improvised mid-task
 - **External ledger** — SQLite runtime state with hash-chained events; markdown
   is a view, never authority
 - **Exact scoped writes** — per-task glob write scopes, role rules

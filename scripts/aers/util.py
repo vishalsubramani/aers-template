@@ -1,3 +1,4 @@
+"""Shared helpers: repo root discovery, atomic writes, hashing, redaction, timestamps."""
 from __future__ import annotations
 
 import hashlib

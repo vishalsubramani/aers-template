@@ -37,6 +37,12 @@ library, which queue) belong in ADRs; the pattern here is the invariant.
 - **PAT-08 Graceful degradation over hard failure.** When a non-critical
   dependency fails, serve the degraded documented behavior (stale cache,
   reduced feature, queued write) and record it — never cascade the outage.
+- **PAT-20 Overload is managed, not survived.** Retries are load multipliers:
+  cap total amplification with retry budgets, not per-callsite counts alone.
+  Under overload, shed load early and predictably (bounded queues, admission
+  control) rather than degrading for everyone; prefer static stability —
+  keep serving from last-known-good state when a dependency or control plane
+  is down instead of failing on refresh.
 
 ## Data in motion
 

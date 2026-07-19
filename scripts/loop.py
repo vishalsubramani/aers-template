@@ -134,26 +134,33 @@ def main(argv=None) -> int:
     parser.add_argument("--contract-ref",default="HEAD",help="Approved commit containing immutable feature/task contracts")
     parser.add_argument("--owner",default=f"orchestrator-{os.getpid()}")
     args=parser.parse_args(argv)
-    cfg=load_config(); source=cfg.repo; contract_sha=rev_parse(source,args.contract_ref)
+    cfg=load_config()
+    source=cfg.repo
+    contract_sha=rev_parse(source,args.contract_ref)
     mission=source/"MISSION.md"
     if mission.exists() and "<!-- PLACEHOLDER" in mission.read_text(encoding="utf-8",errors="replace"):
-        print("SAFE_STOP: MISSION.md is still the unfilled placeholder; a human must state the repository's mission before autonomous work",file=sys.stderr);return 2
+        print("SAFE_STOP: MISSION.md is still the unfilled placeholder; a human must state the repository's mission before autonomous work",file=sys.stderr)
+        return 2
     bundle=load_bundle(source,args.feature,args.task,ref=contract_sha)
     if bundle.feature["risk_tier"]=="R3":
-        print("SAFE_STOP: R3 tasks cannot produce autonomous candidates",file=sys.stderr);return 2
+        print("SAFE_STOP: R3 tasks cannot produce autonomous candidates",file=sys.stderr)
+        return 2
     ledger=Ledger(cfg.state_dir/"ledger.sqlite3")
     ledger.register(bundle.feature,bundle.tasks_doc,contract_sha)
     ready,blocked=dependencies_ready(ledger,args.feature,bundle.task)
     if not ready:
-        print(f"SAFE_STOP: dependencies not ready: {blocked}",file=sys.stderr);return 2
+        print(f"SAFE_STOP: dependencies not ready: {blocked}",file=sys.stderr)
+        return 2
     current=ledger.task(args.feature,args.task)
     if current["attempts"] >= bundle.task["budget"]["max_attempts"]:
-        print("SAFE_STOP: attempt budget exhausted",file=sys.stderr);return 2
+        print("SAFE_STOP: attempt budget exhausted",file=sys.stderr)
+        return 2
     run_id=ledger.start_run(args.feature,args.task,args.owner)
     branch=f"aers/{args.feature.lower()}/{args.task.lower()}-{run_id[-8:].lower()}"
     worktree_root=Path(os.environ.get("AERS_WORKTREE_DIR", str(cfg.repo.parent / f".{cfg.repo.name}-aers-worktrees")))
     worktree=worktree_root/run_id
-    evidence=cfg.evidence_dir/run_id; evidence.mkdir(parents=True,exist_ok=True)
+    evidence=cfg.evidence_dir/run_id
+    evidence.mkdir(parents=True,exist_ok=True)
     trajectory=evidence/"trajectory.jsonl"
     atomic_write_text(trajectory,json.dumps({"timestamp":utc_now(),"run_id":run_id,"event_type":"state","result":"run_started","redacted":True})+"\n")
     try:
@@ -185,7 +192,8 @@ def main(argv=None) -> int:
         if sorted(staged)!=sorted(scope.changed_paths):
             raise RuntimeError("staged path set differs from approved changed path set")
         run_git(worktree,["commit","-m",f"{args.feature} {args.task}: {bundle.task['title']}"])
-        candidate=head_sha(worktree);ledger.set_candidate(args.feature,args.task,candidate,run_id)
+        candidate=head_sha(worktree)
+        ledger.set_candidate(args.feature,args.task,candidate,run_id)
         ledger.transition(args.feature,args.task,"candidate_committed",run_id,{"candidate_sha":candidate})
         ledger.transition(args.feature,args.task,"author_verifying",run_id)
         author_path=evidence/"author-report.json"

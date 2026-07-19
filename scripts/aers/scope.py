@@ -1,3 +1,4 @@
+"""Exact diff-vs-authority scope gate: write scopes, roles, budgets, protected paths, symlinks."""
 from __future__ import annotations
 
 import fnmatch

@@ -1,3 +1,4 @@
+"""Hermetic author verification: clean-export the candidate, run typed argv commands with network isolation, differential test gate."""
 from __future__ import annotations
 
 import json

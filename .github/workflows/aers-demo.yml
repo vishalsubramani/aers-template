@@ -1,0 +1,69 @@
+name: AERS end-to-end demo (real isolation)
+# Runs the full offline pipeline on Linux with REAL user-namespace network
+# isolation (no AERS_NETWORK_ISOLATED assertion): happy path to author_ready
+# for both demo tasks, plus both adversarial cases blocked for the right
+# reasons. This exercises the kit's strongest guarantee on every change.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # Pin to an immutable SHA in production.
+      - uses: actions/setup-python@v5 # Pin to an immutable SHA in production.
+        with: {python-version: '3.11'}
+      # Ubuntu 24.04 images restrict unprivileged user namespaces by default;
+      # the demo's hermetic verify needs `unshare -Urn` to PROVE isolation.
+      - name: Allow unprivileged user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+      - name: Control-plane checks
+        run: |
+          python3 scripts/aers.py lint
+          python3 scripts/aers.py eval-public
+          python3 -m unittest discover -s tests -p 'test_*.py'
+      - name: Happy path — both tasks reach author_ready under proven isolation
+        run: |
+          bash examples/setup-demo.sh "$RUNNER_TEMP/demo"
+          cd "$RUNNER_TEMP/demo"
+          export AERS_AGENT_CMD_JSON='["python3","scripts/adapters/stub_agent.py","--prompt-file","{prompt_file}"]'
+          export AERS_REVIEWER_CMD_JSON='["python3","scripts/adapters/stub_reviewer.py","--output","{output}","--candidate","{candidate_sha}"]'
+          export AERS_STUB_PATCH_DIR="$PWD/examples/patches"
+          python3 scripts/run_ready.py --feature FEAT-001 --max-runs 4 > summary.json
+          python3 - <<'CHECK'
+          import json
+          tasks = {t["task_id"]: t["status"] for t in json.load(open("summary.json"))["tasks"]}
+          assert tasks == {"T-001": "author_ready", "T-002": "author_ready"}, tasks
+          print("happy path verified:", tasks)
+          CHECK
+      - name: Attack 1 — implementer loosening a test is blocked
+        run: |
+          bash examples/setup-demo.sh "$RUNNER_TEMP/attack1"
+          cd "$RUNNER_TEMP/attack1"
+          export AERS_AGENT_CMD_JSON='["python3","scripts/adapters/stub_agent.py","--prompt-file","{prompt_file}"]'
+          export AERS_REVIEWER_CMD_JSON='["python3","scripts/adapters/stub_reviewer.py","--output","{output}","--candidate","{candidate_sha}"]'
+          AERS_STUB_PATCH="$PWD/examples/patches/T-001-tests.patch" python3 scripts/loop.py --feature FEAT-001 --task T-001
+          set +e
+          AERS_STUB_PATCH="$PWD/examples/patches/NEG-evil-loosen-test.patch" python3 scripts/loop.py --feature FEAT-001 --task T-002 2> attack.log
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+          grep -q IMPLEMENTER_EDITED_TEST attack.log
+          echo "attack 1 blocked as designed"
+      - name: Attack 2 — non-discriminating test fails the differential gate
+        run: |
+          bash examples/setup-demo.sh "$RUNNER_TEMP/attack2"
+          cd "$RUNNER_TEMP/attack2"
+          export AERS_AGENT_CMD_JSON='["python3","scripts/adapters/stub_agent.py","--prompt-file","{prompt_file}"]'
+          export AERS_REVIEWER_CMD_JSON='["python3","scripts/adapters/stub_reviewer.py","--output","{output}","--candidate","{candidate_sha}"]'
+          set +e
+          AERS_STUB_PATCH="$PWD/examples/patches/NEG-differential-nondiscriminating.patch" python3 scripts/loop.py --feature FEAT-001 --task T-001 2> attack.log
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+          grep -q DIFFERENTIAL_TEST_PASSES_ON_BASE .aers-evidence/RUN-*/author-report.json
+          echo "attack 2 blocked as designed"

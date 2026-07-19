@@ -93,3 +93,8 @@ and ADRs. Deviation requires an ADR naming the axiom (see `README.md`).
   its license, maintenance health, and transitive surface considered; versions
   are pinned through a committed lockfile and vetted by `make security`.
   Trivial functionality is written, not imported.
+- **AX-22 Reliability is a stated target, not a vibe.** User-facing behavior
+  gets explicit SLIs and an SLO the system is engineered and alerted against;
+  the gap between the SLO and perfection is the error budget that paces risk:
+  budget healthy → ship; budget burned → reliability work wins the priority
+  argument. "As reliable as possible" is not a requirement.

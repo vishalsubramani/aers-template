@@ -1,3 +1,4 @@
+"""Build per-task context packets: hashed file excerpts, contract text, and navigation for a fresh agent."""
 from __future__ import annotations
 
 from pathlib import Path

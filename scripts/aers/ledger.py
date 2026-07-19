@@ -1,3 +1,4 @@
+"""External SQLite runtime ledger: registered contracts, task state machine, and hash-chained append-only events."""
 from __future__ import annotations
 
 import json

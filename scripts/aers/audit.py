@@ -1,3 +1,4 @@
+"""Deterministic candidate audit: diff, trajectory, and tamper checks that run before any model-based review."""
 from __future__ import annotations
 
 import json

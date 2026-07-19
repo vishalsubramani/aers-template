@@ -20,12 +20,19 @@ Gemini, Copilot, a human) follows it verbatim.
    - **ADR-0001 Architecture baseline** — module boundaries, dependency
      direction (AX-03/04), stack choices with innovation tokens spent (AX-01),
      and how the architecture rule is enforced in `make check`.
-   - **ADR-0002 Data baseline** — store choice, schema conventions (DD-04..07),
-     migration mechanism and zero-downtime posture (DD-10/11), and dataset
-     ownership (DD-18).
-   These are proposals: a human accepts them before they bind. Every later
-   plan cites them, so nothing about structure or data shape is decided
-   ad hoc inside a feature task.
+   - **ADR-0002 Data baseline** — store choice (DF-02), schema conventions
+     (DD-04..07), migration mechanism and zero-downtime posture (DD-10/11),
+     and dataset ownership (DD-18).
+   - **ADR-0003 Security baseline** — the OWASP ASVS level this repository
+     verifies against (L1/L2/L3), the authentication/authorization model
+     (PAT-17), secret management (PAT-18), and supply-chain controls (AX-21);
+     `make security` implements these checks so the baseline is executable,
+     not aspirational.
+   Answer the design interrogation in
+   `.agents/doctrine/decision-frameworks.md` inside each ADR. These are
+   proposals: a human accepts them before they bind. Every later plan cites
+   them, so nothing about structure, data shape, or security posture is
+   decided ad hoc inside a feature task.
 4. Derive a roadmap: decompose the mission into the smallest useful sequence of
    features. For each of the first one to three features, scaffold a pack with
    `python3 scripts/aers.py init-feature <FEAT-ID> --title "..." --mode S1` and

@@ -1,3 +1,4 @@
+"""Control-plane lint: required files, schema/JSON/TOML/Python validity, placeholders, skill hashes, memory integrity."""
 from __future__ import annotations
 
 import hashlib
@@ -18,7 +19,7 @@ def lint_repo(repo: Path) -> dict[str, Any]:
     required = ["AGENTS.md","aers.toml",".agents/constitution.md",".agents/policies/autonomy-policy.json",
                 ".agents/schemas/feature-contract.schema.json","scripts/aers.py","scripts/loop.py",
                 ".agents/doctrine/engineering-axioms.md",".agents/doctrine/data-doctrine.md",
-                ".agents/doctrine/pattern-library.md"]
+                ".agents/doctrine/pattern-library.md",".agents/doctrine/decision-frameworks.md"]
     for rel in required:
         if not (repo / rel).exists():
             findings.append({"severity":"error","code":"MISSING_REQUIRED","message":rel})
@@ -71,7 +72,8 @@ def lint_repo(repo: Path) -> dict[str, Any]:
             if fp.exists() or tp.exists():
                 try:
                     feature, tasks = load_json(fp), load_json(tp)
-                    validate_feature(feature); validate_tasks(tasks, feature)
+                    validate_feature(feature)
+                    validate_tasks(tasks, feature)
                 except Exception as exc:
                     findings.append({"severity":"error","code":"INVALID_FEATURE_PACK","message":f"{directory.name}: {exc}"})
 

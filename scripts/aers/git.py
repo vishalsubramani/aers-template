@@ -1,3 +1,4 @@
+"""Thin subprocess wrappers over git: rev-parse, diff, clean-export, worktree helpers."""
 from __future__ import annotations
 
 import io

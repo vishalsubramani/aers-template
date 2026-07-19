@@ -1,3 +1,4 @@
+"""Quarantined memory proposals and curator-controlled promotion into active memory."""
 from __future__ import annotations
 
 import json

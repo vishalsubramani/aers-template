@@ -1,3 +1,4 @@
+"""Generate the repository navigation map used in context packets."""
 from __future__ import annotations
 
 from collections import Counter

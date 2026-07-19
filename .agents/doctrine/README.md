@@ -9,6 +9,10 @@ deliberate, reviewed deviation.
 - `engineering-axioms.md` — architecture and engineering axioms (`AX-*`)
 - `data-doctrine.md` — data modeling, schema, and migration axioms (`DD-*`)
 - `pattern-library.md` — default patterns for recurring problems (`PAT-*`)
+- `decision-frameworks.md` — contextual trade-off frameworks for recurring
+  forks (`DF-*`) and the design interrogation every plan must answer
+- `sources.md` — the canonical sources this doctrine distills, kept
+  attributable so doctrine updates track their sources deliberately
 
 ## Authority and precedence
 

@@ -1,3 +1,4 @@
+"""argparse command surface for the AERS control plane (`python3 scripts/aers.py --help`)."""
 from __future__ import annotations
 
 import argparse
@@ -62,21 +63,26 @@ def main(argv: list[str] | None=None) -> int:
         if args.command=="ledger-init":
             ledger=_ledger(cfg);_json({"ledger":str(ledger.path)});return 0
         if args.command=="register":
-            ref=rev_parse(cfg.repo,args.ref);fp,tp=feature_paths(args.feature)
+            ref=rev_parse(cfg.repo,args.ref)
+            fp,tp=feature_paths(args.feature)
             import json as _j
             from .git import read_file_at_ref
-            feature=_j.loads(read_file_at_ref(cfg.repo,ref,fp));tasks=_j.loads(read_file_at_ref(cfg.repo,ref,tp))
+            feature=_j.loads(read_file_at_ref(cfg.repo,ref,fp))
+            tasks=_j.loads(read_file_at_ref(cfg.repo,ref,tp))
             _ledger(cfg).register(feature,tasks,ref);_json({"registered":args.feature,"base_sha":ref});return 0
         if args.command=="ledger-show":
-            _json(_ledger(cfg).view(args.feature));return 0
+            _json(_ledger(cfg).view(args.feature))
+            return 0
         if args.command=="context-pack":
             base=args.base or load_json(cfg.feature_root/args.feature/"feature.contract.json")["base_ref"]
             output=Path(args.output) if args.output else cfg.state_dir/"context"/f"{args.feature}-{args.task}.md"
-            _json(build_context_packet(cfg.repo,args.feature,args.task,base,output));return 0
+            _json(build_context_packet(cfg.repo,args.feature,args.task,base,output))
+            return 0
         if args.command=="scope-check":
             report=evaluate_scope(cfg.repo,args.feature,args.task,args.base,contract_ref=args.base)
             if args.output: atomic_write_json(Path(args.output),report.to_dict())
-            _json(report.to_dict());return 0 if report.passed else 1
+            _json(report.to_dict())
+            return 0 if report.passed else 1
         if args.command=="author-verify":
             output=Path(args.output) if args.output else cfg.evidence_dir/f"author-{args.feature}-{args.task}-{head_sha(cfg.repo)[:12]}.json"
             report=author_verify(cfg.repo,args.feature,args.task,args.base,output,args.degraded);_json({"report":str(output),**report});return 0 if report["verdict"]=="AUTHOR_READY" else 1
@@ -93,7 +99,8 @@ def main(argv: list[str] | None=None) -> int:
             path=promote(cfg.repo,Path(args.record),args.validation);_json({"active":str(path)});return 0
         if args.command=="hook":
             if args.hook_name=="pre-tool":
-                payload=json.load(sys.stdin);return pre_tool_guard(payload)
+                payload=json.load(sys.stdin)
+                return pre_tool_guard(payload)
             return task_completed_gate()
         raise ValueError(f"Unhandled command: {args.command}")
     except Exception as exc:

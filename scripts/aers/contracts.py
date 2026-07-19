@@ -1,3 +1,4 @@
+"""Load and validate immutable feature/task contracts against their JSON schemas at a fixed git ref."""
 from __future__ import annotations
 
 import json
