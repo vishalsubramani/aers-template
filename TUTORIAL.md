@@ -216,6 +216,7 @@ Everything lives under `.aers-evidence/RUN-*/`:
 | `audit-report.json` | deterministic tamper/secret/trajectory findings |
 | `llm-audit-report.json` | (optional) behavioral audit, candidate-bound |
 | `reviewer-report.json` | requirement-fidelity verdict, acceptance IDs reviewed |
+| `reviewer2-report.json` | (R2, when configured) the second independent reviewer's verdict |
 | `agent.stdout.txt`, `trajectory.jsonl` | what actually happened, redacted |
 | `failed-attempt.patch`, `failure.json` | on failure: the rolled-back change and fingerprint |
 
@@ -260,6 +261,12 @@ limits; never wire `allow_local_verified`.
   task's write scope, plus records one hop away via `--link` — deterministic
   associative recall, so what the system learned about an area reaches the
   next agent that touches that area.
+- **Stale stacks**: if a dependency is re-run after a dependent task finished,
+  the dependent's evidence no longer reflects reality. `run_ready` and
+  `ledger-show` report these as `stale_stacks`; re-run the dependent with
+  `python3 scripts/aers.py requeue --feature FEAT-101 --task T-00N --reason
+  "stale stack"` (an explicit human action recorded on the event chain) before
+  external verification.
 - **Cleanup**: after merge, `git worktree remove <path>` and delete the
   `aers/...` branch; evidence dirs are your audit trail — archive, don't
   delete.

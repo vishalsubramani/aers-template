@@ -8,7 +8,9 @@ verified work.
 
 Everything is standard-library Python 3.11+ and git. Zero dependencies, no
 network required, vendor-neutral (Claude Code, Codex, Gemini, Copilot — any
-agent that can read `AGENTS.md` and run a command).
+agent that can read `AGENTS.md` and run a command). Linux is the reference
+platform (provable network isolation via user namespaces); macOS works with an
+asserted sandbox; Windows via WSL.
 
 The whole design serves one rule:
 

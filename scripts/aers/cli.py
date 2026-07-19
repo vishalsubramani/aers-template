@@ -40,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("ledger-init")
     r=sub.add_parser("register");r.add_argument("--feature",required=True);r.add_argument("--ref",default="HEAD")
     s=sub.add_parser("ledger-show");s.add_argument("--feature")
+    rq=sub.add_parser("requeue");rq.add_argument("--feature",required=True);rq.add_argument("--task",required=True);rq.add_argument("--reason",required=True,help="Human-stated reason (e.g. stale stack); recorded on the event chain")
     c=sub.add_parser("context-pack");c.add_argument("--feature",required=True);c.add_argument("--task",required=True);c.add_argument("--base");c.add_argument("--output")
     sc=sub.add_parser("scope-check");sc.add_argument("--feature",required=True);sc.add_argument("--task",required=True);sc.add_argument("--base",required=True);sc.add_argument("--contract-ref",help="Ref for immutable contracts when it differs from --base (stacked tasks)");sc.add_argument("--output")
     v=sub.add_parser("author-verify");v.add_argument("--feature",required=True);v.add_argument("--task",required=True);v.add_argument("--base",required=True);v.add_argument("--contract-ref",help="Ref for immutable contracts when it differs from --base (stacked tasks)");v.add_argument("--output");v.add_argument("--degraded",action="store_true")
@@ -71,7 +72,11 @@ def main(argv: list[str] | None=None) -> int:
             tasks=_j.loads(read_file_at_ref(cfg.repo,ref,tp))
             _ledger(cfg).register(feature,tasks,ref);_json({"registered":args.feature,"base_sha":ref});return 0
         if args.command=="ledger-show":
-            _json(_ledger(cfg).view(args.feature))
+            ledger=_ledger(cfg)
+            view=ledger.view(args.feature)
+            if args.feature:
+                view["stale_stacks"]=ledger.stale_stacks(args.feature)
+            _json(view)
             return 0
         if args.command=="context-pack":
             base=args.base or load_json(cfg.feature_root/args.feature/"feature.contract.json")["base_ref"]
@@ -93,6 +98,10 @@ def main(argv: list[str] | None=None) -> int:
             report=run_public(cfg.repo);_json(report);return 0 if report["passed"] else 1
         if args.command=="repo-map":
             output=Path(args.output) if args.output else cfg.repo/".agents/context/repo-map.generated.md";_json(generate(cfg.repo,output));return 0
+        if args.command=="requeue":
+            _ledger(cfg).requeue(args.feature,args.task,args.reason)
+            _json({"requeued":f"{args.feature}/{args.task}","reason":args.reason})
+            return 0
         if args.command=="memory-propose":
             path=propose(cfg.repo,args.statement,args.scope,args.provenance,args.review_by,links=args.link)
             _json({"proposal":str(path)})

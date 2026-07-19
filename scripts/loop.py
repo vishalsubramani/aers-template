@@ -309,7 +309,10 @@ def main(argv=None) -> int:
             second_review=validate_reviewer(second_output,args.feature,args.task,candidate,bundle.task["acceptance"])
             if second_review["verdict"]!="pass":
                 raise RuntimeError(f"second reviewer verdict is {second_review['verdict']}")
-        ledger.transition(args.feature,args.task,"author_ready",run_id,{"candidate_sha":candidate,"author_report_hash":author["report_hash"],"audit_hash":audit["evidence_hash"]})
+        ledger.transition(args.feature,args.task,"author_ready",run_id,
+                          {"candidate_sha":candidate,"start_sha":start_sha,
+                           "integrated":[f"{d}:{c}" for d,c in integrated],
+                           "author_report_hash":author["report_hash"],"audit_hash":audit["evidence_hash"]})
         ledger.finish_run(run_id,"author_ready",str(evidence))
         summary={"verdict":"AUTHOR_READY","run_id":run_id,"feature_id":args.feature,"task_id":args.task,
                  "contract_sha":contract_sha,"start_sha":start_sha,"candidate_sha":candidate,"branch":branch,

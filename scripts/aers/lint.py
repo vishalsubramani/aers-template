@@ -53,6 +53,29 @@ def lint_repo(repo: Path) -> dict[str, Any]:
         if "<<PLACEHOLDER" in text:
             findings.append({"severity":"error","code":"UNRESOLVED_PLACEHOLDER","message":str(path.relative_to(repo))})
 
+    # Load-bearing docs must not reference repo files that do not exist —
+    # mechanical guard against doc/code drift. Conservative: inline-code refs
+    # only (fenced blocks skipped), known top-level dirs only, placeholders and
+    # example/future IDs (FEAT-*, ADR-0001+, runtime artifacts) skipped.
+    doc_files = ["README.md", "TUTORIAL.md", "AGENTS.md", "CLAUDE.md", "GEMINI.md", "MISSION.md",
+                 "CONTRIBUTING.md", ".agents/README.md", ".agents/memory/README.md"]
+    doc_files += sorted(str(p.relative_to(repo)) for p in (repo / ".agents/doctrine").glob("*.md") if p.is_file())
+    doc_files += sorted(str(p.relative_to(repo)) for p in (repo / "agent_docs").glob("*.md") if p.is_file())
+    known_dirs = {"scripts", ".agents", ".specify", ".claude", ".github", "docs", "evals", "examples", "agent_docs", "tests", "memory"}
+    ref_pattern = re.compile(r"`([A-Za-z0-9_.\-/]+\.(?:md|py|sh|json|toml|yml|jsonl))`")
+    for rel in doc_files:
+        doc_path = repo / rel
+        if not doc_path.exists():
+            continue
+        prose = re.sub(r"```.*?```", "", doc_path.read_text(encoding="utf-8", errors="replace"), flags=re.S)
+        for ref in sorted(set(ref_pattern.findall(prose))):
+            if "/" not in ref or ref.split("/", 1)[0] not in known_dirs:
+                continue
+            if re.search(r"FEAT-|T-\d|MEM-|RUN-|ADR-000[1-9]", ref):
+                continue
+            if not (repo / ref).exists():
+                findings.append({"severity":"error","code":"MISSING_DOC_REFERENCE","message":f"{rel} references nonexistent {ref}"})
+
     lock_path = repo / ".agents/skills/skills.lock.json"
     if lock_path.exists():
         lock = load_json(lock_path)

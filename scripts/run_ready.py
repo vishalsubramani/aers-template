@@ -82,9 +82,17 @@ def main(argv=None) -> int:
             print(f"SAFE_STOP recorded for {task_id}; stopping the outer runner for human review.", file=sys.stderr)
             break
     view = ledger.view(args.feature)
+    stale = ledger.stale_stacks(args.feature)
+    for item in stale:
+        print(f"STALE STACK: {item['task_id']} was verified against {item['dependency']}@"
+              f"{(item['integrated_candidate'] or '')[:12]} but that dependency's candidate is now "
+              f"{(item['current_candidate'] or 'gone')[:12]} — requeue before external verification: "
+              f"python3 scripts/aers.py requeue --feature {args.feature} --task {item['task_id']} --reason 'stale stack'",
+              file=sys.stderr)
     summary = {"feature_id": args.feature, "runs": results,
                "tasks": [{"task_id": t["task_id"], "status": t["status"], "attempts": t["attempts"],
                           "candidate_sha": t["candidate_sha"]} for t in view["tasks"]],
+               "stale_stacks": stale,
                "statement": "AUTHOR_READY candidates only; external verifier attestation is still required."}
     print(json.dumps(summary, indent=2))
     incomplete = [t for t in view["tasks"] if t["status"] not in READY_SATISFIED]

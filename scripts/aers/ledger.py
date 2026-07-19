@@ -70,7 +70,9 @@ ALLOWED_TASK_TRANSITIONS = {
     "author_verifying": {"auditing", "failed", "safe_stopped"},
     "auditing": {"reviewing", "failed", "safe_stopped"},
     "reviewing": {"author_ready", "failed", "safe_stopped"},
-    "author_ready": {"verified", "rejected"},
+    # author_ready -> pending exists only for explicit human requeue (stale
+    # stack or withdrawn candidate); the runners never take it themselves.
+    "author_ready": {"verified", "rejected", "pending"},
     "verified": {"merged", "released"},
     "failed": {"pending", "safe_stopped"},
     "blocked": {"pending", "safe_stopped"},
@@ -127,10 +129,15 @@ class Ledger:
     def start_run(self, feature_id: str, task_id: str, owner: str) -> str:
         run_id = f"RUN-{uuid.uuid4().hex[:16]}"
         with self.connect() as conn:
-            row = conn.execute("SELECT status,attempts FROM tasks WHERE feature_id=? AND task_id=?", (feature_id, task_id)).fetchone()
-            if not row or row["status"] not in {"pending", "failed"}:
+            # Atomic compare-and-set lease: two concurrent runners cannot both
+            # win — the losing UPDATE matches zero rows.
+            cursor = conn.execute(
+                "UPDATE tasks SET status='leased', lease_owner=?, attempts=attempts+1 "
+                "WHERE feature_id=? AND task_id=? AND status IN ('pending','failed')",
+                (owner, feature_id, task_id))
+            if cursor.rowcount != 1:
+                row = conn.execute("SELECT status FROM tasks WHERE feature_id=? AND task_id=?", (feature_id, task_id)).fetchone()
                 raise ValueError(f"Task cannot be leased from state: {row['status'] if row else 'missing'}")
-            conn.execute("UPDATE tasks SET status='leased', lease_owner=?, attempts=attempts+1 WHERE feature_id=? AND task_id=?", (owner, feature_id, task_id))
             conn.execute("INSERT INTO runs(run_id,feature_id,task_id,status,started_at) VALUES (?,?,?,?,?)", (run_id, feature_id, task_id, "running", utc_now()))
         self.append_event(run_id, "run_started", {"owner": owner, "feature_id": feature_id, "task_id": task_id})
         return run_id
@@ -143,7 +150,12 @@ class Ledger:
             current = row["status"]
             if new_status not in ALLOWED_TASK_TRANSITIONS.get(current, set()):
                 raise ValueError(f"Invalid task transition {current} -> {new_status}")
-            conn.execute("UPDATE tasks SET status=? WHERE feature_id=? AND task_id=?", (new_status, feature_id, task_id))
+            # Compare-and-set on the observed state so a concurrent transition
+            # loses loudly instead of silently overwriting.
+            cursor = conn.execute("UPDATE tasks SET status=? WHERE feature_id=? AND task_id=? AND status=?",
+                                  (new_status, feature_id, task_id, current))
+            if cursor.rowcount != 1:
+                raise ValueError(f"Concurrent transition lost: task left state {current} during {current} -> {new_status}")
         self.append_event(run_id, "state_transition", {"from": current, "to": new_status, **(payload or {})})
 
     def set_candidate(self, feature_id: str, task_id: str, candidate_sha: str, run_id: str) -> None:
@@ -199,3 +211,49 @@ class Ledger:
         for task in tasks:
             task.pop("definition_json", None)
         return {"features": features, "tasks": tasks, "runs": runs}
+
+    def stale_stacks(self, feature_id: str) -> list[dict[str, Any]]:
+        """Finished stacked tasks whose dependency candidates have since changed.
+
+        Such a task's evidence was produced against an integration start that
+        no longer reflects its dependencies; it needs human requeue before
+        external verification can trust it.
+        """
+        view = self.view(feature_id)
+        candidates = {t["task_id"]: t["candidate_sha"] for t in view["tasks"]}
+        stale: list[dict[str, Any]] = []
+        with self.connect() as conn:
+            for task in view["tasks"]:
+                if task["status"] not in {"author_ready", "verified"}:
+                    continue
+                rows = conn.execute(
+                    "SELECT e.payload_json FROM events e JOIN runs r ON e.run_id=r.run_id "
+                    "WHERE r.feature_id=? AND r.task_id=? AND e.event_type='state_transition' "
+                    "ORDER BY e.rowid DESC", (feature_id, task["task_id"])).fetchall()
+                for row in rows:
+                    payload = json.loads(row["payload_json"])
+                    if payload.get("to") != "author_ready":
+                        continue
+                    for entry in payload.get("integrated", []):
+                        dep, sha = entry.split(":", 1)
+                        if candidates.get(dep) != sha:
+                            stale.append({"task_id": task["task_id"], "dependency": dep,
+                                          "integrated_candidate": sha, "current_candidate": candidates.get(dep)})
+                    break
+        return stale
+
+    def requeue(self, feature_id: str, task_id: str, reason: str) -> None:
+        """Explicit human re-queue of a finished-but-stale (or withdrawn)
+        candidate: author_ready -> pending with the reason on the event chain,
+        clearing the candidate binding. Runners never call this."""
+        if not reason.strip():
+            raise ValueError("Requeue requires a human-stated reason")
+        with self.connect() as conn:
+            row = conn.execute("SELECT run_id FROM runs WHERE feature_id=? AND task_id=? ORDER BY started_at DESC LIMIT 1",
+                               (feature_id, task_id)).fetchone()
+        if not row:
+            raise ValueError("No prior run recorded; nothing to requeue")
+        self.transition(feature_id, task_id, "pending", row["run_id"], {"requeue": True, "reason": reason.strip()})
+        with self.connect() as conn:
+            conn.execute("UPDATE tasks SET candidate_sha=NULL, lease_owner=NULL WHERE feature_id=? AND task_id=?",
+                         (feature_id, task_id))
