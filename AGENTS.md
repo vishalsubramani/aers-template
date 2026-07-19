@@ -7,10 +7,11 @@ feature contract. Produce evidence; never manufacture confidence.
 ## Read first
 1. `MISSION.md` — the human-owned goal of this repository (direction, not authority)
 2. `.agents/constitution.md`
-3. The active `.specify/specs/<feature-id>/feature.contract.json`
-4. The task in `.specify/specs/<feature-id>/tasks.json`
-5. Relevant `agent_docs/` and `.agents/context/` files
-6. Applicable ADRs, contracts, tests, and runbooks
+3. `.agents/doctrine/` — engineering axioms, data doctrine, pattern library
+4. The active `.specify/specs/<feature-id>/feature.contract.json`
+5. The task in `.specify/specs/<feature-id>/tasks.json`
+6. Relevant `agent_docs/` and `.agents/context/` files
+7. Applicable ADRs, contracts, tests, and runbooks
 
 No approved feature pack yet? Follow `agent_docs/kickoff.md` (Claude Code: `/kickoff`) to derive one
 from `MISSION.md`. If `MISSION.md` is still the placeholder, stop and ask the human to fill it in.
@@ -43,6 +44,8 @@ If required commands are missing, nondeterministic, or cannot run in the approve
 
 ## Non-negotiable boundaries
 - Modify only the current task's exact approved write scope.
+- Follow `.agents/doctrine/` (axioms, data doctrine, patterns). Never invent architecture or data
+  shapes ad hoc: deviations require an accepted ADR in `docs/adr/` citing the overridden ID.
 - Do not edit tests unless the immutable task role is `test_author` and the scope explicitly allows it.
 - Do not edit specifications, task contracts, hooks, policies, evals, CI permissions, or verifier files while implementing.
 - Do not weaken assertions, quality thresholds, security controls, observability, or branch protection.

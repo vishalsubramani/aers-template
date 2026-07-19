@@ -4,6 +4,7 @@
 fork its meaning.
 
 - `constitution.md` — non-negotiable principles
+- `doctrine/` — engineering axioms, data doctrine, and the default pattern library
 - `operating-model.md` — states, roles, trust domains, and evidence
 - `context/` — curated repository facts and generated navigation
 - `policies/` — machine-readable authority and risk rules

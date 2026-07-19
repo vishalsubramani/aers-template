@@ -156,6 +156,7 @@ network. The production design must isolate the oracle and minimize one-way outp
 ├── aers.toml                         # runtime-neutral configuration
 ├── .agents/                          # canonical vendor-neutral control plane
 │   ├── constitution.md
+│   ├── doctrine/                     # engineering axioms, data doctrine, pattern library
 │   ├── operating-model.md
 │   ├── context/
 │   ├── policies/*.json
@@ -450,7 +451,8 @@ High/critical findings fail. Medium findings require explicit review.
 ### 12.2 Typed reviewer second
 
 The reviewer re-reads the original spec, examines the exact candidate diff and evidence, covers every acceptance ID,
-and flags only evidence-backed correctness, scope, security, reliability, operability, or compositional gaps.
+and flags only evidence-backed correctness, scope, security, reliability, operability, compositional, or
+doctrine-conformance gaps (contradictions of `.agents/doctrine/` or accepted ADRs, cited by ID).
 
 Its JSON output must bind to feature ID, task ID, candidate SHA, acceptance IDs, findings, and verdict. A text token
 or natural-language "looks good" is never accepted.
@@ -897,6 +899,8 @@ controlled prompt/harness optimization. Expand only where measured throughput ex
 This repository is itself the executable starter, containing:
 
 - root and nested agent contracts, with `MISSION.md` as the human-owned intent
+- a protected engineering doctrine: architecture axioms, data doctrine, and a
+  default pattern library, with ADR-gated deviation and foundation ADRs at kickoff
 - Spec Kit-compatible templates and typed schemas
 - stdlib-only Python control plane
 - SQLite hash-chained work ledger

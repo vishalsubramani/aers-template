@@ -16,7 +16,9 @@ from .util import load_json
 def lint_repo(repo: Path) -> dict[str, Any]:
     findings: list[dict[str, str]] = []
     required = ["AGENTS.md","aers.toml",".agents/constitution.md",".agents/policies/autonomy-policy.json",
-                ".agents/schemas/feature-contract.schema.json","scripts/aers.py","scripts/loop.py"]
+                ".agents/schemas/feature-contract.schema.json","scripts/aers.py","scripts/loop.py",
+                ".agents/doctrine/engineering-axioms.md",".agents/doctrine/data-doctrine.md",
+                ".agents/doctrine/pattern-library.md"]
     for rel in required:
         if not (repo / rel).exists():
             findings.append({"severity":"error","code":"MISSING_REQUIRED","message":rel})

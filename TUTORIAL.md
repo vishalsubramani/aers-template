@@ -34,12 +34,24 @@ agents refuse to kick off while it is still the placeholder. Then edit
 `AGENTS.md`: one line of purpose, your stack, and your exact commands. Keep it
 short; deep material goes in `agent_docs/`. Commit both.
 
+Skim `.agents/doctrine/` too: those are the engineering axioms, data rules,
+and default patterns every plan will be held against. They are deliberately
+stack-neutral; your stack-specific choices land in the foundation ADRs
+(architecture and data baselines) that kickoff drafts for your approval before
+any feature work. If your organization disagrees with a default, change the
+doctrine file up front through a reviewed control-plane PR — not silently,
+later, mid-feature.
+
 **Step 3 — Wire your real gates.** Replace the placeholder bodies of `check`,
 `test`, `security` in `Makefile` with your project's real commands. The
 verifier never trusts prose — only these commands and the per-task command
 arrays.
 
-**Step 4 — Author your first feature pack.**
+**Step 4 — Author your first feature pack.** (First time only: draft and get
+approval on the foundation ADRs — ADR-0001 architecture baseline, ADR-0002
+data baseline — from `docs/adr/ADR-0000-template.md` per `agent_docs/kickoff.md`
+step 3. `/kickoff` does this automatically; on this manual path, do it by hand.
+Every plan cites them, so they must exist before feature work.)
 
 ```bash
 python3 scripts/aers.py init-feature FEAT-101 --title "Your feature" --mode S1 --risk R1

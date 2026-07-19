@@ -227,7 +227,8 @@ def main(argv=None) -> int:
         reviewer_prompt=evidence/"reviewer-prompt.md"
         atomic_write_text(reviewer_prompt,
           f"Review candidate {candidate} for {args.feature}/{args.task} against original contracts at {contract_sha}.\n"
-          f"Read {context_path}, {author_path}, {audit_path}, and the Git diff. Flag only evidence-backed correctness, scope, security, operability, or requirement gaps.\n"
+          f"Read {context_path}, {author_path}, {audit_path}, and the Git diff. Flag only evidence-backed correctness, scope, security, operability, requirement, "
+          "or doctrine-conformance gaps (a diff contradicting .agents/doctrine/ or an accepted ADR without a cited approving ADR; name the AX-*/DD-*/PAT-* ID).\n"
           f"Write schema-valid JSON to {evidence/'reviewer-report.json'} with schema_version=1, feature_id, task_id, candidate_sha, verdict, findings, acceptance_reviewed.\n"
           "You cannot issue VERIFIED and must not edit the worktree.\n")
         reviewer_output=evidence/"reviewer-report.json"

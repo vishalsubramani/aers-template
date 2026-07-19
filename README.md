@@ -66,6 +66,12 @@ instead of lowering a gate to finish.
 
 - **Typed intent** — feature and task contracts (JSON Schema-validated), EARS
   acceptance criteria, risk tiers and spec modes, immutable once registered
+- **Committed engineering doctrine** — a protected school of thought
+  (`.agents/doctrine/`): 21 architecture axioms, 18 data-modeling and
+  migration rules, and a 19-pattern default library. Plans cite the IDs they
+  apply; deviations need an accepted ADR; kickoff derives foundation ADRs
+  (architecture + data baselines) before the first feature, so structure and
+  data shape are decided deliberately, never improvised mid-task
 - **External ledger** — SQLite runtime state with hash-chained events; markdown
   is a view, never authority
 - **Exact scoped writes** — per-task glob write scopes, role rules
@@ -128,8 +134,8 @@ make verify      # all author-visible gates
 
 - `MISSION.md` — human-owned goal of the repository; direction, not authority
 - `AGENTS.md` — concise always-loaded agent map and non-negotiables
-- `.agents/` — canonical vendor-neutral control plane (constitution, policies,
-  schemas, roles, skills, memory, telemetry)
+- `.agents/` — canonical vendor-neutral control plane (constitution, doctrine,
+  policies, schemas, roles, skills, memory, telemetry)
 - `.specify/` — Spec Kit-compatible feature packs: human spec + typed contracts
 - `agent_docs/` — progressive-disclosure operating guides (kickoff, sandbox,
   memory, context, multi-agent, verification)

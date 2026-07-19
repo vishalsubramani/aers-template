@@ -16,7 +16,7 @@ def build_context_packet(repo: Path, feature_id: str, task_id: str, base_ref: st
     likely = []
     from .scope import matches
     for path in tracked:
-        if matches(path, scopes) or matches(path, ["AGENTS.md", ".agents/context/**", "docs/adr/**", "docs/runbooks/**", "tests/**", "**/*_test.*", "**/*.test.*", "**/*.spec.*"]):
+        if matches(path, scopes) or matches(path, ["AGENTS.md", ".agents/context/**", ".agents/doctrine/**", "docs/adr/**", "docs/runbooks/**", "tests/**", "**/*_test.*", "**/*.test.*", "**/*.spec.*"]):
             likely.append(path)
     likely = likely[:500]
     lines = [
