@@ -1,3 +1,4 @@
+"""Run the public adversarial smoke evaluations against the scope/audit gates."""
 from __future__ import annotations
 
 import json

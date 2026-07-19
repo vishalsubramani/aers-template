@@ -1,3 +1,4 @@
+"""Scaffold new feature packs (spec, contract, tasks) under .specify/specs/."""
 from __future__ import annotations
 
 import json

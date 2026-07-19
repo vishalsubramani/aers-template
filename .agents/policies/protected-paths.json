@@ -3,8 +3,10 @@
   "always_protected": [
     "MISSION.md",
     "AGENTS.md",
+    "**/AGENTS.md",
     "CLAUDE.md",
     "GEMINI.md",
+    ".github/copilot-instructions.md",
     "aers.toml",
     "CODEOWNERS",
     "SECURITY.md",

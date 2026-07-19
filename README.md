@@ -8,7 +8,9 @@ verified work.
 
 Everything is standard-library Python 3.11+ and git. Zero dependencies, no
 network required, vendor-neutral (Claude Code, Codex, Gemini, Copilot — any
-agent that can read `AGENTS.md` and run a command).
+agent that can read `AGENTS.md` and run a command). Linux is the reference
+platform (provable network isolation via user namespaces); macOS works with an
+asserted sandbox; Windows via WSL.
 
 The whole design serves one rule:
 
@@ -49,7 +51,8 @@ reports anything it skipped, and prints the same three next steps: fill
 
 ```text
 MISSION.md  →  /kickoff  →  approved feature packs (.specify/specs/)
-            →  per task: fresh agent in a clean worktree
+            →  per task: fresh agent in a clean worktree, stacked on
+               dependency candidates (integration-true verification)
             →  SCOPE GATE (exact diff vs immutable write scope)
             →  candidate commit (orchestrator stages approved paths only)
             →  hermetic AUTHOR VERIFY (+ differential test gate)
@@ -66,6 +69,15 @@ instead of lowering a gate to finish.
 
 - **Typed intent** — feature and task contracts (JSON Schema-validated), EARS
   acceptance criteria, risk tiers and spec modes, immutable once registered
+- **Committed engineering doctrine** — a protected school of thought
+  (`.agents/doctrine/`): 22 architecture axioms, 18 data-modeling and
+  migration rules, a 20-pattern default library, and 6 contextual decision
+  frameworks with a design interrogation — distilled from SWE-at-Google, the
+  Amazon Builders' Library, Google SRE, the Azure pattern catalog, and OWASP
+  (see `sources.md`). Plans cite the IDs they apply; deviations need an
+  accepted ADR; kickoff derives foundation ADRs (architecture, data, and
+  security baselines) before the first feature, so structure, data shape, and
+  security posture are decided deliberately, never improvised mid-task
 - **External ledger** — SQLite runtime state with hash-chained events; markdown
   is a view, never authority
 - **Exact scoped writes** — per-task glob write scopes, role rules
@@ -82,8 +94,11 @@ instead of lowering a gate to finish.
 - **Fresh-context task loop** — one task per fresh process
   (`scripts/loop.py`), an outer runner for a whole feature's task graph
   (`scripts/run_ready.py`), failed-attempt rollback with preserved patches
-- **Curated memory** — quarantined proposals, human-controlled promotion;
-  agent output never silently becomes durable instruction
+- **Curated memory with a closed learning loop** — quarantined proposals,
+  human-controlled promotion, and deterministic associative recall: promoted
+  lessons flow back into every context packet whose task scope intersects the
+  lesson's scope (plus linked lessons one hop away); agent output never
+  silently becomes durable instruction
 - **Guardrail hooks** — Claude Code hooks deny protected-path writes and
   config drift early (defense in depth; the gates are the boundary)
 - **Public adversarial evals** — smoke cases that prove the gates actually
@@ -104,8 +119,13 @@ export AERS_NETWORK_ISOLATED=1   # only if your host lacks Linux user namespaces
 python3 scripts/run_ready.py --feature FEAT-001 --max-runs 4
 ```
 
-On Linux, drop the `AERS_NETWORK_ISOLATED` line: verification proves isolation
-itself with `unshare` network namespaces and fails closed otherwise.
+On Linux with unprivileged user namespaces enabled, drop the
+`AERS_NETWORK_ISOLATED` line — verification proves isolation itself with
+`unshare` and fails closed otherwise. Note some distros (e.g. Ubuntu 24.04)
+restrict unprivileged userns by default; enable it with
+`sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`, or keep the
+assertion line for the offline demo (`.github/workflows/aers-demo.yml` shows
+the CI setup).
 
 Then watch it catch attacks (a test-loosening implementer, a
 non-discriminating test) — `TUTORIAL.md` Part 2.
@@ -128,8 +148,8 @@ make verify      # all author-visible gates
 
 - `MISSION.md` — human-owned goal of the repository; direction, not authority
 - `AGENTS.md` — concise always-loaded agent map and non-negotiables
-- `.agents/` — canonical vendor-neutral control plane (constitution, policies,
-  schemas, roles, skills, memory, telemetry)
+- `.agents/` — canonical vendor-neutral control plane (constitution, doctrine,
+  policies, schemas, roles, skills, memory, telemetry)
 - `.specify/` — Spec Kit-compatible feature packs: human spec + typed contracts
 - `agent_docs/` — progressive-disclosure operating guides (kickoff, sandbox,
   memory, context, multi-agent, verification)

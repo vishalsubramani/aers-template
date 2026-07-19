@@ -1,3 +1,4 @@
+"""Load and validate immutable feature/task contracts against their JSON schemas at a fixed git ref."""
 from __future__ import annotations
 
 import json
@@ -95,6 +96,15 @@ def validate_tasks(value: dict[str, Any], feature: dict[str, Any]) -> None:
             raise ValueError(f"Task {task['id']} has invalid role {task['role']}")
         if task["role"] in {"implementer", "test_author", "architect", "documentation"} and not task["write_scope"]:
             raise ValueError(f"Writable task {task['id']} requires write_scope")
+        # A task may never be granted blanket repo write or write over the
+        # guardrail-defining surfaces; those are human R3 control-plane changes.
+        for glob in task["write_scope"]:
+            if glob.strip("./") in {"**", "*"}:
+                raise ValueError(f"Task {task['id']} write_scope may not be blanket ('{glob}'); scope it to the paths it changes")
+            prefix = glob.split("*", 1)[0].rstrip("/")
+            if prefix and any((prefix + "/").startswith(g + "/") or (g + "/").startswith(prefix + "/")
+                              for g in [".agents/policies", ".agents/schemas", ".agents/trusted", ".claude/hooks"]):
+                raise ValueError(f"Task {task['id']} write_scope '{glob}' reaches a guardrail-defining surface; that is a human control-plane change, not an autonomous task")
         unknown_acceptance = set(task["acceptance"]) - accepted
         if unknown_acceptance:
             raise ValueError(f"Task {task['id']} references unknown acceptance: {sorted(unknown_acceptance)}")

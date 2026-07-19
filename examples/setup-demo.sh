@@ -7,9 +7,14 @@ TARGET="${1:?usage: setup-demo.sh <target-dir>}"
 KIT="$(cd "$(dirname "$0")/.." && pwd)"
 [ -e "$TARGET" ] && { echo "refusing: $TARGET already exists" >&2; exit 1; }
 mkdir -p "$TARGET"
-# Kit files (excluding runtime state, git, and the demo sources themselves)
-( cd "$KIT" && tar --exclude=.git --exclude=.aers-runtime --exclude=.aers-evidence \
-      --exclude=examples/demo-src -cf - . ) | ( cd "$TARGET" && tar -xf - )
+# Kit files — copy only the known control-plane surfaces, never the whole host
+# tree (which could include an adopter's unrelated, lint-breaking files).
+KIT_PATHS=(.agents .specify .claude .github agent_docs docs evals scripts tests examples \
+           AGENTS.md CLAUDE.md GEMINI.md README.md TUTORIAL.md CONTRIBUTING.md MISSION.md \
+           SECURITY.md CODEOWNERS Makefile aers.toml pyproject.toml .gitignore install.sh)
+present=()
+for p in "${KIT_PATHS[@]}"; do [ -e "$KIT/$p" ] && present+=("$p"); done
+( cd "$KIT" && tar -cf - "${present[@]}" ) | ( cd "$TARGET" && tar -xf - )
 # Demo application
 ( cd "$KIT/examples/demo-src" && tar -cf - . ) | ( cd "$TARGET" && tar -xf - )
 # Approved feature pack

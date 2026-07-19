@@ -1,3 +1,4 @@
+"""Load and expose aers.toml configuration with environment overrides for state/evidence paths."""
 from __future__ import annotations
 
 import os

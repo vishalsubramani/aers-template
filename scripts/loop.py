@@ -59,6 +59,27 @@ def dependencies_ready(ledger: Ledger, feature_id: str, task: dict) -> tuple[boo
     return not blocked, blocked
 
 
+def integrate_dependencies(ledger: Ledger, worktree: Path, feature_id: str, task: dict) -> list[tuple[str, str]]:
+    """Merge each dependency's candidate into the fresh worktree (stacked branching).
+
+    The resulting HEAD is the task's integration start: its diff, differential
+    tests, and hermetic verification all run against dependency work included,
+    so green means integrated-green, not merge-day hope. A merge conflict is a
+    plan defect (overlapping write scopes) and safe-stops for human attention.
+    """
+    integrated=[]
+    for dep in sorted(task["depends_on"]):
+        candidate=ledger.task(feature_id,dep).get("candidate_sha")
+        if not candidate:
+            raise RuntimeError(f"INTEGRATION_MISSING_CANDIDATE: dependency {dep} is ready but has no candidate SHA")
+        merge=run_git(worktree,["merge","--no-edit",candidate],check=False)
+        if merge.returncode!=0:
+            run_git(worktree,["merge","--abort"],check=False)
+            raise RuntimeError(f"INTEGRATION_CONFLICT: dependency {dep} candidate {candidate[:12]} does not merge cleanly; re-partition write scopes")
+        integrated.append((dep,candidate))
+    return integrated
+
+
 def validate_reviewer(path: Path, feature_id: str, task_id: str, candidate_sha: str, required_acceptance: list[str]) -> dict:
     if not path.exists():
         raise ValueError("Reviewer did not create its required JSON report")
@@ -134,37 +155,59 @@ def main(argv=None) -> int:
     parser.add_argument("--contract-ref",default="HEAD",help="Approved commit containing immutable feature/task contracts")
     parser.add_argument("--owner",default=f"orchestrator-{os.getpid()}")
     args=parser.parse_args(argv)
-    cfg=load_config(); source=cfg.repo; contract_sha=rev_parse(source,args.contract_ref)
+    cfg=load_config()
+    source=cfg.repo
+    contract_sha=rev_parse(source,args.contract_ref)
     mission=source/"MISSION.md"
     if mission.exists() and "<!-- PLACEHOLDER" in mission.read_text(encoding="utf-8",errors="replace"):
-        print("SAFE_STOP: MISSION.md is still the unfilled placeholder; a human must state the repository's mission before autonomous work",file=sys.stderr);return 2
+        print("SAFE_STOP: MISSION.md is still the unfilled placeholder; a human must state the repository's mission before autonomous work",file=sys.stderr)
+        return 2
     bundle=load_bundle(source,args.feature,args.task,ref=contract_sha)
     if bundle.feature["risk_tier"]=="R3":
-        print("SAFE_STOP: R3 tasks cannot produce autonomous candidates",file=sys.stderr);return 2
+        print("SAFE_STOP: R3 tasks cannot produce autonomous candidates",file=sys.stderr)
+        return 2
+    if (bundle.feature["risk_tier"]=="R2"
+            and cfg.raw.get("verification",{}).get("require_second_reviewer_r2",False)
+            and not os.environ.get("AERS_SECOND_REVIEWER_CMD_JSON")):
+        print("SAFE_STOP: SECOND_REVIEWER_REQUIRED — risk tier R2 requires AERS_SECOND_REVIEWER_CMD_JSON (a different model/harness than the first reviewer)",file=sys.stderr)
+        return 2
     ledger=Ledger(cfg.state_dir/"ledger.sqlite3")
     ledger.register(bundle.feature,bundle.tasks_doc,contract_sha)
     ready,blocked=dependencies_ready(ledger,args.feature,bundle.task)
     if not ready:
-        print(f"SAFE_STOP: dependencies not ready: {blocked}",file=sys.stderr);return 2
+        print(f"SAFE_STOP: dependencies not ready: {blocked}",file=sys.stderr)
+        return 2
     current=ledger.task(args.feature,args.task)
     if current["attempts"] >= bundle.task["budget"]["max_attempts"]:
-        print("SAFE_STOP: attempt budget exhausted",file=sys.stderr);return 2
+        print("SAFE_STOP: attempt budget exhausted",file=sys.stderr)
+        return 2
     run_id=ledger.start_run(args.feature,args.task,args.owner)
     branch=f"aers/{args.feature.lower()}/{args.task.lower()}-{run_id[-8:].lower()}"
     worktree_root=Path(os.environ.get("AERS_WORKTREE_DIR", str(cfg.repo.parent / f".{cfg.repo.name}-aers-worktrees")))
     worktree=worktree_root/run_id
-    evidence=cfg.evidence_dir/run_id; evidence.mkdir(parents=True,exist_ok=True)
+    evidence=cfg.evidence_dir/run_id
+    evidence.mkdir(parents=True,exist_ok=True)
     trajectory=evidence/"trajectory.jsonl"
     atomic_write_text(trajectory,json.dumps({"timestamp":utc_now(),"run_id":run_id,"event_type":"state","result":"run_started","redacted":True})+"\n")
+    start_sha=contract_sha
     try:
         run_git(source,["worktree","add","-b",branch,str(worktree),contract_sha])
-        ledger.transition(args.feature,args.task,"implementing",run_id,{"worktree":str(worktree),"branch":branch})
-        context_path=evidence/"context.md"; build_context_packet(source,args.feature,args.task,contract_sha,context_path)
+        run_git(worktree,["config","user.name","AERS Orchestrator"])
+        run_git(worktree,["config","user.email","aers-orchestrator@invalid.local"])
+        integrated=integrate_dependencies(ledger,worktree,args.feature,bundle.task)
+        start_sha=head_sha(worktree)
+        ledger.transition(args.feature,args.task,"implementing",run_id,
+                          {"worktree":str(worktree),"branch":branch,"start_sha":start_sha,
+                           "integrated":[f"{d}:{c}" for d,c in integrated]})
+        context_path=evidence/"context.md"; build_context_packet(worktree,args.feature,args.task,start_sha,context_path,contract_ref=contract_sha)
         prompt_path=evidence/"prompt.md"; make_prompt(bundle,context_path,run_id,trajectory,prompt_path)
         agent_template=parse_command_env("AERS_AGENT_CMD_JSON")
         agent_argv=render_argv(agent_template,{"prompt_file":str(prompt_path),"worktree":str(worktree),"trajectory":str(trajectory),"run_id":run_id})
-        env={**os.environ,"AERS_FEATURE_ID":args.feature,"AERS_TASK_ID":args.task,"AERS_BASE_SHA":contract_sha,
-             "AERS_RUN_ID":run_id,"AERS_TRAJECTORY_PATH":str(trajectory),"AERS_STATE_DIR":str(cfg.state_dir),"AERS_EVIDENCE_DIR":str(cfg.evidence_dir)}
+        # AERS_BASE_SHA is the diff base (integration start); AERS_CONTRACT_SHA
+        # is where immutable contracts are read. They differ for stacked tasks.
+        env={**os.environ,"AERS_FEATURE_ID":args.feature,"AERS_TASK_ID":args.task,"AERS_BASE_SHA":start_sha,
+             "AERS_CONTRACT_SHA":contract_sha,"AERS_RUN_ID":run_id,"AERS_TRAJECTORY_PATH":str(trajectory),
+             "AERS_STATE_DIR":str(cfg.state_dir),"AERS_EVIDENCE_DIR":str(cfg.evidence_dir)}
         proc=subprocess.run(agent_argv,cwd=worktree,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
                             timeout=bundle.task["budget"]["max_seconds"])
         atomic_write_text(evidence/"agent.stdout.txt",redact(proc.stdout));atomic_write_text(evidence/"agent.stderr.txt",redact(proc.stderr))
@@ -172,30 +215,32 @@ def main(argv=None) -> int:
             tf.write(json.dumps({"timestamp":utc_now(),"run_id":run_id,"event_type":"model","result":"agent_process_finished","redacted":True,"attributes":{"returncode":proc.returncode}})+"\n")
         if proc.returncode!=0:
             raise RuntimeError(f"agent process exited {proc.returncode}")
-        scope=evaluate_scope(worktree,args.feature,args.task,contract_sha,contract_ref=contract_sha)
+        scope=evaluate_scope(worktree,args.feature,args.task,start_sha,contract_ref=contract_sha)
         atomic_write_json(evidence/"scope.json",scope.to_dict())
         if not scope.changed_paths:
             raise RuntimeError("agent produced no changed files")
         if not scope.passed:
             raise RuntimeError("scope gate failed: "+json.dumps(scope.findings,sort_keys=True))
         ledger.transition(args.feature,args.task,"scope_passed",run_id)
-        run_git(worktree,["config","user.name","AERS Orchestrator"]);run_git(worktree,["config","user.email","aers-orchestrator@invalid.local"])
         run_git(worktree,["add","--",*scope.changed_paths])
         staged=run_git(worktree,["diff","--cached","--name-only"]).stdout.splitlines()
         if sorted(staged)!=sorted(scope.changed_paths):
             raise RuntimeError("staged path set differs from approved changed path set")
-        run_git(worktree,["commit","-m",f"{args.feature} {args.task}: {bundle.task['title']}"])
-        candidate=head_sha(worktree);ledger.set_candidate(args.feature,args.task,candidate,run_id)
+        commit_message=(f"{args.feature} {args.task}: {bundle.task['title']}\n\n"
+                        f"AERS-Run: {run_id}\nAERS-Contract: {contract_sha}\nAERS-Start: {start_sha}")
+        run_git(worktree,["commit","-m",commit_message])
+        candidate=head_sha(worktree)
+        ledger.set_candidate(args.feature,args.task,candidate,run_id)
         ledger.transition(args.feature,args.task,"candidate_committed",run_id,{"candidate_sha":candidate})
         ledger.transition(args.feature,args.task,"author_verifying",run_id)
         author_path=evidence/"author-report.json"
-        author=author_verify(worktree,args.feature,args.task,contract_sha,author_path,degraded=False)
+        author=author_verify(worktree,args.feature,args.task,start_sha,author_path,degraded=False,contract_ref=contract_sha)
         if author["verdict"]!="AUTHOR_READY":
             reasons="; ".join(author.get("fatal_reasons") or [])
             raise RuntimeError("author verification did not produce AUTHOR_READY"+(f": {reasons}" if reasons else ""))
         ledger.transition(args.feature,args.task,"auditing",run_id)
         audit_path=evidence/"audit-report.json"
-        audit=audit_candidate(worktree,args.feature,args.task,contract_sha,run_id,trajectory,audit_path)
+        audit=audit_candidate(worktree,args.feature,args.task,start_sha,run_id,trajectory,audit_path,contract_ref=contract_sha)
         if audit["verdict"]!="pass":
             raise RuntimeError(f"deterministic audit verdict is {audit['verdict']}")
         llm_audit_raw=os.environ.get("AERS_AUDITOR_CMD_JSON")
@@ -206,8 +251,8 @@ def main(argv=None) -> int:
             role_text=(cfg.repo/".claude/agents/auditor.md").read_text(encoding="utf-8")
             atomic_write_text(auditor_prompt,
               role_text+"\n\n---\n"
-              f"Run: {run_id}\nFeature: {args.feature}\nTask: {args.task}\nBase: {contract_sha}\nCandidate: {candidate}\n"
-              f"Evidence to read: {context_path}, {author_path}, {audit_path}, the Git diff `git diff {contract_sha}..{candidate}`, "
+              f"Run: {run_id}\nFeature: {args.feature}\nTask: {args.task}\nContracts at: {contract_sha}\nDiff base (integration start): {start_sha}\nCandidate: {candidate}\n"
+              f"Evidence to read: {context_path}, {author_path}, {audit_path}, the task's own Git diff `git diff {start_sha}..{candidate}`, "
               f"and the trajectory at {trajectory}.\n"
               f"Write STRICT schema-valid JSON to {auditor_output} with schema_version=1, feature_id, task_id, candidate_sha, "
               "verdict (pass|needs_work|security_stop), findings, confidence. You cannot issue VERIFIED and must not edit the worktree.\n")
@@ -227,7 +272,9 @@ def main(argv=None) -> int:
         reviewer_prompt=evidence/"reviewer-prompt.md"
         atomic_write_text(reviewer_prompt,
           f"Review candidate {candidate} for {args.feature}/{args.task} against original contracts at {contract_sha}.\n"
-          f"Read {context_path}, {author_path}, {audit_path}, and the Git diff. Flag only evidence-backed correctness, scope, security, operability, or requirement gaps.\n"
+          f"The task's own diff is `git diff {start_sha}..{candidate}` (its integration start includes dependency candidates).\n"
+          f"Read {context_path}, {author_path}, {audit_path}, and that diff. Flag only evidence-backed correctness, scope, security, operability, requirement, "
+          "or doctrine-conformance gaps (a diff contradicting .agents/doctrine/ or an accepted ADR without a cited approving ADR; name the AX-*/DD-*/PAT-* ID).\n"
           f"Write schema-valid JSON to {evidence/'reviewer-report.json'} with schema_version=1, feature_id, task_id, candidate_sha, verdict, findings, acceptance_reviewed.\n"
           "You cannot issue VERIFIED and must not edit the worktree.\n")
         reviewer_output=evidence/"reviewer-report.json"
@@ -240,17 +287,54 @@ def main(argv=None) -> int:
         review=validate_reviewer(reviewer_output,args.feature,args.task,candidate,bundle.task["acceptance"])
         if review["verdict"]!="pass":
             raise RuntimeError(f"reviewer verdict is {review['verdict']}")
-        ledger.transition(args.feature,args.task,"author_ready",run_id,{"candidate_sha":candidate,"author_report_hash":author["report_hash"],"audit_hash":audit["evidence_hash"]})
+        # Risk-tiered review depth: R2 work gets a second, independent reviewer.
+        # (Config/env preflight for this happens before the run starts.)
+        second_raw=os.environ.get("AERS_SECOND_REVIEWER_CMD_JSON")
+        if second_raw and bundle.feature["risk_tier"]=="R2":
+            second_template=parse_command_env("AERS_SECOND_REVIEWER_CMD_JSON")
+            if second_template==reviewer_template:
+                raise RuntimeError("SECOND_REVIEWER_NOT_INDEPENDENT: AERS_SECOND_REVIEWER_CMD_JSON is identical to AERS_REVIEWER_CMD_JSON; use a different model/harness")
+            second_prompt=evidence/"reviewer2-prompt.md"
+            second_output=evidence/"reviewer2-report.json"
+            atomic_write_text(second_prompt,
+              reviewer_prompt.read_text(encoding="utf-8").replace(str(reviewer_output),str(second_output))
+              +"You are the SECOND independent reviewer. Do not read the first reviewer's report; form your own judgment.\n")
+            second_argv=render_argv(second_template,{"review_prompt":str(second_prompt),"output":str(second_output),"worktree":str(worktree),"candidate_sha":candidate,"run_id":run_id})
+            second_proc=subprocess.run(second_argv,cwd=worktree,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                                       timeout=min(900,bundle.task["budget"]["max_seconds"]))
+            atomic_write_text(evidence/"reviewer2.stdout.txt",redact(second_proc.stdout))
+            atomic_write_text(evidence/"reviewer2.stderr.txt",redact(second_proc.stderr))
+            if second_proc.returncode!=0:
+                raise RuntimeError(f"second reviewer process exited {second_proc.returncode}")
+            second_review=validate_reviewer(second_output,args.feature,args.task,candidate,bundle.task["acceptance"])
+            if second_review["verdict"]!="pass":
+                raise RuntimeError(f"second reviewer verdict is {second_review['verdict']}")
+        ledger.transition(args.feature,args.task,"author_ready",run_id,
+                          {"candidate_sha":candidate,"start_sha":start_sha,
+                           "integrated":[f"{d}:{c}" for d,c in integrated],
+                           "author_report_hash":author["report_hash"],"audit_hash":audit["evidence_hash"]})
         ledger.finish_run(run_id,"author_ready",str(evidence))
-        summary={"verdict":"AUTHOR_READY","run_id":run_id,"feature_id":args.feature,"task_id":args.task,"base_sha":contract_sha,
-                 "candidate_sha":candidate,"branch":branch,"worktree":str(worktree),"evidence":str(evidence),
+        summary={"verdict":"AUTHOR_READY","run_id":run_id,"feature_id":args.feature,"task_id":args.task,
+                 "contract_sha":contract_sha,"start_sha":start_sha,"candidate_sha":candidate,"branch":branch,
+                 "worktree":str(worktree),"evidence":str(evidence),
                  "statement":"External verifier attestation is still required; no push/merge/release was performed."}
         atomic_write_json(evidence/"summary.json",summary);print(json.dumps(summary,indent=2));return 0
     except Exception as exc:
         fingerprint=hash_object({"type":type(exc).__name__,"message":str(exc)})
+        # If the task already reached author_ready before this exception (e.g. a
+        # post-review failure), the candidate branch/worktree are a human's to
+        # keep — never roll them back or mark the run failed.
+        try:
+            reached_ready=ledger.task(args.feature,args.task)["status"]=="author_ready"
+        except Exception:
+            reached_ready=False
+        if reached_ready:
+            atomic_write_json(evidence/"post-ready-error.json",{"run_id":run_id,"error":type(exc).__name__,"message":str(exc)})
+            print(f"WARNING: task already author_ready; error after finalization preserved, not rolled back: {exc}",file=sys.stderr)
+            return 2
         try:
             if worktree.exists():
-                atomic_write_text(evidence/"failed-attempt.patch", diff_text(worktree, contract_sha))
+                atomic_write_text(evidence/"failed-attempt.patch", diff_text(worktree, start_sha))
         except Exception:
             pass
         try:

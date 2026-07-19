@@ -1,3 +1,4 @@
+"""Shared helpers: repo root discovery, atomic writes, hashing, redaction, timestamps."""
 from __future__ import annotations
 
 import hashlib
@@ -9,11 +10,26 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-SECRET_PATTERNS = [
+# Format-anchored provider credentials — high confidence, near-zero false
+# positives. Safe to use as a HARD gate (audit fails the candidate).
+PROVIDER_SECRET_PATTERNS = [
     re.compile(r"gh[pousr]_[A-Za-z0-9_]{20,}"),
+    re.compile(r"github_pat_[A-Za-z0-9_]{20,}"),                      # GitHub fine-grained PAT
     re.compile(r"AKIA[0-9A-Z]{16}"),
-    re.compile(r"(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*['\"][^'\"]{8,}['\"]"),
-    re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
+    re.compile(r"AIza[0-9A-Za-z_-]{35}"),                            # Google API key
+    re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"),                       # Slack tokens
+    re.compile(r"sk-[A-Za-z0-9_-]{16,}"),                             # OpenAI-style keys
+    re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"),  # JWTs
+    re.compile(r"(?i)\baws[_-]?secret[_-]?access[_-]?key\b\s*[:=]\s*\S{16,}"),
+    re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"),
+]
+
+# Broader net for REDACTION (masking evidence/logs) where a false positive only
+# over-masks and costs nothing — includes generic key=value shapes.
+SECRET_PATTERNS = PROVIDER_SECRET_PATTERNS + [
+    re.compile(r"(?i)\b(?:bearer|authorization)\b\s*[:=]?\s*[A-Za-z0-9._~+/-]{16,}"),
+    re.compile(r"(?i)(api[_-]?key|token|secret|password|passwd|pwd|access[_-]?key|client[_-]?secret)\s*[:=]\s*['\"][^'\"]{6,}['\"]"),
+    re.compile(r"(?i)(api[_-]?key|token|secret|password|passwd|pwd|access[_-]?key|client[_-]?secret)\s*[:=]\s*(?!['\"])\S{8,}"),
 ]
 
 

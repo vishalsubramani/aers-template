@@ -34,12 +34,25 @@ agents refuse to kick off while it is still the placeholder. Then edit
 `AGENTS.md`: one line of purpose, your stack, and your exact commands. Keep it
 short; deep material goes in `agent_docs/`. Commit both.
 
+Skim `.agents/doctrine/` too: those are the engineering axioms, data rules,
+and default patterns every plan will be held against. They are deliberately
+stack-neutral; your stack-specific choices land in the foundation ADRs
+(architecture and data baselines) that kickoff drafts for your approval before
+any feature work. If your organization disagrees with a default, change the
+doctrine file up front through a reviewed control-plane PR — not silently,
+later, mid-feature.
+
 **Step 3 — Wire your real gates.** Replace the placeholder bodies of `check`,
 `test`, `security` in `Makefile` with your project's real commands. The
 verifier never trusts prose — only these commands and the per-task command
 arrays.
 
-**Step 4 — Author your first feature pack.**
+**Step 4 — Author your first feature pack.** (First time only: draft and get
+approval on the foundation ADRs — ADR-0001 architecture baseline, ADR-0002
+data baseline, ADR-0003 security baseline — from `docs/adr/ADR-0000-template.md`
+per `agent_docs/kickoff.md` step 3. `/kickoff` does this automatically; on this
+manual path, do it by hand. Every plan cites them, so they must exist before
+feature work.)
 
 ```bash
 python3 scripts/aers.py init-feature FEAT-101 --title "Your feature" --mode S1 --risk R1
@@ -107,7 +120,9 @@ python3 scripts/run_ready.py --feature FEAT-001 --max-runs 4
 ```
 
 What just happened, per task: a **fresh worktree** was created from the
-contract commit; the stub "agent" applied a prepared change (a real agent
+contract commit (T-002's worktree then merged T-001's candidate first — its
+integration start — so its verification ran T-001's new tests against T-002's
+implementation); the stub "agent" applied a prepared change (a real agent
 would think here); the **scope gate** compared the exact git diff against the
 task's immutable `write_scope`, role rules, and budgets; the orchestrator
 staged **only** the approved paths and committed the candidate; **author
@@ -135,8 +150,10 @@ AERS_STUB_PATCH="$PWD/examples/patches/NEG-evil-loosen-test.patch" \
 # -> exit 2, findings OUTSIDE_WRITE_SCOPE + IMPLEMENTER_EDITED_TEST,
 #    worktree rolled back, failed-attempt.patch preserved in evidence.
 
-# A test that does not actually test the new behavior (fresh dir again,
-# since T-001 above is now author_ready):
+# A test that does not actually test the new behavior. T-001 above is now
+# author_ready and cannot be re-run, so start a fresh demo dir:
+bash examples/setup-demo.sh /tmp/aers-attack2 && cd /tmp/aers-attack2
+# (re-export the AERS_* variables from Part 2, incl. AERS_NETWORK_ISOLATED=1)
 AERS_STUB_PATCH="$PWD/examples/patches/NEG-differential-nondiscriminating.patch" \
   python3 scripts/loop.py --feature FEAT-001 --task T-001
 # -> AUTHOR_FAILED: DIFFERENTIAL_TEST_PASSES_ON_BASE
@@ -163,6 +180,13 @@ export AERS_REVIEWER_INNER_CMD_JSON='["claude","-p","{prompt}","--output-format"
 # Optional third gate — the LLM trajectory auditor (rich prompt in .claude/agents/auditor.md):
 export AERS_AUDITOR_CMD_JSON='["python3","scripts/adapters/run_prompt.py","--prompt-file","{audit_prompt}","--cwd","{worktree}","--inner-env","AERS_AUDITOR_INNER_CMD_JSON"]'
 export AERS_AUDITOR_INNER_CMD_JSON='["claude","-p","{prompt}","--output-format","text"]'
+
+# Optional risk-tiered review depth — a SECOND independent reviewer for R2 features
+# (use a different model/harness than the first reviewer; the loop refuses an
+# identical command array). Enforce it by setting
+# require_second_reviewer_r2 = true in aers.toml [verification].
+export AERS_SECOND_REVIEWER_CMD_JSON='["python3","scripts/adapters/run_prompt.py","--prompt-file","{review_prompt}","--cwd","{worktree}","--inner-env","AERS_SECOND_REVIEWER_INNER_CMD_JSON"]'
+export AERS_SECOND_REVIEWER_INNER_CMD_JSON='["codex","exec","{prompt}"]'
 
 python3 scripts/run_ready.py --feature FEAT-001 --max-runs 6
 ```
@@ -195,8 +219,23 @@ Everything lives under `.aers-evidence/RUN-*/`:
 | `audit-report.json` | deterministic tamper/secret/trajectory findings |
 | `llm-audit-report.json` | (optional) behavioral audit, candidate-bound |
 | `reviewer-report.json` | requirement-fidelity verdict, acceptance IDs reviewed |
+| `reviewer2-report.json` | (R2, when configured) the second independent reviewer's verdict |
 | `agent.stdout.txt`, `trajectory.jsonl` | what actually happened, redacted |
 | `failed-attempt.patch`, `failure.json` | on failure: the rolled-back change and fingerprint |
+
+**Branching and integration model.** Contracts live on the default branch;
+each task run gets its own branch `aers/<feature>/<task>-<run>` in a worktree
+outside the repo. Dependent tasks are **stacked**: the worktree starts from
+the dependency candidates merged onto the contract commit (the *integration
+start*, recorded as an `AERS-Start` commit trailer alongside `AERS-Run` and
+`AERS-Contract`). The scope gate and differential tests diff against the
+start; hermetic verification runs the suite with dependency work included —
+so a green T-002 proves T-001's tests pass against T-002's implementation
+*now*, not at merge day. A dependency candidate that does not merge cleanly is
+an `INTEGRATION_CONFLICT` safe-stop: overlapping write scopes are a planning
+defect, not something to auto-resolve. Merge candidates in task-graph order
+(the last candidate in a chain already contains the whole chain), delete
+`aers/...` branches after merge.
 
 Ledger truth: `python3 scripts/aers.py ledger-show --feature FEAT-001`. Each
 `author_ready` task has a candidate SHA on a branch
@@ -217,9 +256,27 @@ limits; never wire `allow_local_verified`.
   attention. A `safe_stopped`, `rejected`, or `author_ready` task is never
   silently re-run.
 - **Learning**: propose lessons with `python3 scripts/aers.py memory-propose
-  --statement "..." --provenance RUN-... --review-by 2026-12-31`; they stay
-  quarantined until `memory-promote` with validation — never active in the
-  same run that produced them.
+  --statement "..." --scope "src/payments/**" --provenance RUN-...
+  --review-by 2026-12-31 --link MEM-...`; they stay quarantined until
+  `memory-promote` with validation — never active in the same run that
+  produced them. Once promoted, lessons flow back automatically: every
+  context packet recalls active lessons whose `--scope` globs intersect the
+  task's write scope, plus records one hop away via `--link` — deterministic
+  associative recall, so what the system learned about an area reaches the
+  next agent that touches that area.
+- **Stale stacks**: if a dependency is re-run after a dependent task finished,
+  the dependent's evidence no longer reflects reality. `run_ready` and
+  `ledger-show` report these as `stale_stacks`; re-run the dependent with
+  `python3 scripts/aers.py requeue --feature FEAT-101 --task T-00N --reason
+  "stale stack"` (an explicit human action recorded on the event chain, which
+  resets the attempt counter) before external verification. A verified-stale
+  task cannot be rewound — it must be re-verified externally.
+- **Recovering stuck tasks**: a run killed mid-flight (crash, SIGKILL) leaves
+  its task in an intermediate state with no live process; a `safe_stopped` task
+  is parked for human attention. Return either to service with
+  `python3 scripts/aers.py requeue --feature FEAT-101 --task T-00N --force
+  --reason "..."` — a journaled human override (the only path that bypasses the
+  normal transition table, and only from a non-terminal state).
 - **Cleanup**: after merge, `git worktree remove <path>` and delete the
   `aers/...` branch; evidence dirs are your audit trail — archive, don't
   delete.

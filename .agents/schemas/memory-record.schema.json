@@ -63,6 +63,13 @@
       "items": {
         "type": "string"
       }
+    },
+    "links": {
+      "description": "IDs of related memory records; retrieval follows these one hop so associated lessons surface together",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   }
 }

@@ -1,3 +1,4 @@
+"""Deterministic candidate audit: diff, trajectory, and tamper checks that run before any model-based review."""
 from __future__ import annotations
 
 import json
@@ -7,7 +8,7 @@ from typing import Any
 
 from .git import diff_text, head_sha, rev_parse
 from .scope import evaluate_scope
-from .util import atomic_write_json, hash_object, redact, sha256_text, utc_now
+from .util import PROVIDER_SECRET_PATTERNS, atomic_write_json, hash_object, redact, sha256_text, utc_now
 
 TAMPERING_PATTERNS = [
     ("PYTEST_COLLECTION_TAMPER", re.compile(r"pytest_collection_modifyitems|pytest_runtest_setup"), "medium"),
@@ -15,10 +16,9 @@ TAMPERING_PATTERNS = [
     ("FORCED_SUCCESS_EXIT", re.compile(r"(?:sys|process)\.exit\(0\)|os\._exit\(0\)"), "medium"),
     ("RUNNER_OVERRIDE", re.compile(r"testMatch\s*[:=].*(?:\$\^|nomatch)|collect_ignore"), "medium"),
 ]
-SECRET_PATTERNS = [
-    re.compile(r"gh[pousr]_[A-Za-z0-9_]{20,}"), re.compile(r"AKIA[0-9A-Z]{16}"),
-    re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")
-]
+# Hard secret-in-diff gate uses the shared format-anchored provider list so the
+# audit's coverage never drifts below the redactor's (both live in util.py).
+SECRET_PATTERNS = PROVIDER_SECRET_PATTERNS
 DANGEROUS_COMMANDS = ["git push --force", "git reset --hard", "git clean -fdx", "rm -rf /", "curl | sh", "wget | sh", "/proc/self/environ", "printenv"]
 
 
@@ -44,10 +44,14 @@ def _read_trajectory(path: Path | None) -> tuple[list[dict[str, Any]], list[dict
     return events, findings
 
 
-def audit_candidate(repo: Path, feature_id: str, task_id: str, base_ref: str, run_id: str, trajectory: Path | None, output: Path) -> dict[str, Any]:
+def audit_candidate(repo: Path, feature_id: str, task_id: str, base_ref: str, run_id: str, trajectory: Path | None, output: Path,
+                    contract_ref: str | None = None) -> dict[str, Any]:
+    # base_ref: diff base (integration start for stacked tasks); contract_ref:
+    # where immutable contracts are read (defaults to base_ref).
     base_sha = rev_parse(repo, base_ref)
+    contract_sha = rev_parse(repo, contract_ref) if contract_ref else base_sha
     candidate_sha = head_sha(repo)
-    scope = evaluate_scope(repo, feature_id, task_id, base_sha, contract_ref=base_sha)
+    scope = evaluate_scope(repo, feature_id, task_id, base_sha, contract_ref=contract_sha)
     findings: list[dict[str, str]] = list(scope.findings)
     diff = diff_text(repo, base_sha)
     for code, pattern, severity in TAMPERING_PATTERNS:
