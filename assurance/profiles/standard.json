@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "profile_id": "standard",
+  "name": "AERS Standard",
+  "version": "1.0.0",
+  "description": "Typed feature/task contracts, fresh process per task, differential regression discrimination, an independent reviewer, memory quarantine, and rollback evidence. The default posture for most autonomous work.",
+  "supersedes": "lite",
+  "controls": {
+    "CTRL-STABLE-COMMANDS": "REQUIRED",
+    "CTRL-SCOPE-ENFORCEMENT": "REQUIRED",
+    "CTRL-PROTECTED-PATHS": "REQUIRED",
+    "CTRL-STATIC-CHECKS": "REQUIRED",
+    "CTRL-TEST-SUITE": "REQUIRED",
+    "CTRL-DETERMINISTIC-AUDIT": "REQUIRED",
+    "CTRL-CONTRACT-INTEGRITY": "REQUIRED",
+    "CTRL-DIFFERENTIAL-TEST": "REQUIRED",
+    "CTRL-REVIEWER-INDEPENDENCE": "REQUIRED",
+    "CTRL-MEMORY-GOVERNANCE": "REQUIRED",
+    "CTRL-ROLLBACK": "REQUIRED",
+    "CTRL-DEPENDENCY-GOVERNANCE": "REQUIRED",
+    "CTRL-OBSERVABILITY": "RECOMMENDED",
+    "CTRL-ISOLATION": "RECOMMENDED",
+    "CTRL-SECOND-REVIEWER-R2": "RECOMMENDED",
+    "CTRL-EVALUATOR-HEALTH": "RECOMMENDED",
+    "CTRL-EVIDENCE-RETENTION": "RECOMMENDED",
+    "CTRL-EXTERNAL-VERIFIER": "OPTIONAL",
+    "CTRL-PRIVATE-ORACLE": "OPTIONAL",
+    "CTRL-ATTESTATION": "OPTIONAL",
+    "CTRL-SIGNED-PROVENANCE": "OPTIONAL",
+    "CTRL-RELEASE-SEGREGATION": "OPTIONAL"
+  }
+}

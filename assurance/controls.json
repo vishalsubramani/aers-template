@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "controls": {
+    "CTRL-STABLE-COMMANDS": {
+      "category": "operability",
+      "description": "Stable command map (bootstrap/check/test/security/evals/verify) exists so verification is reproducible.",
+      "evidence_source": "Makefile targets",
+      "remediation": "Add the stable Make targets and wire them to real tools.",
+      "blocks": "AUTHOR_READY"
+    },
+    "CTRL-SCOPE-ENFORCEMENT": {
+      "category": "scope enforcement",
+      "description": "An executable scope gate diffs each candidate against its immutable task write-scope and roles.",
+      "evidence_source": "scripts/aers/scope.py + scope-check command",
+      "remediation": "Restore scripts/aers/scope.py and the scope-check command.",
+      "blocks": "AUTHOR_READY"
+    },
+    "CTRL-PROTECTED-PATHS": {
+      "category": "protected paths",
+      "description": "A protected-paths policy classifies control-plane, test, generated and sensitive paths, enforced by the scope gate and hooks.",
+      "evidence_source": ".agents/policies/protected-paths.json",
+      "remediation": "Provide .agents/policies/protected-paths.json with always_protected and test_patterns.",
+      "blocks": "AUTHOR_READY"
+    },
+    "CTRL-STATIC-CHECKS": {
+      "category": "contract integrity",
+      "description": "A control-plane lint validates schemas, JSON/TOML/Python, placeholders and doc drift.",
+      "evidence_source": "make check / aers lint",
+      "remediation": "Wire `make check` to `aers lint` plus your formatter/linter/type checks.",
+      "blocks": "AUTHOR_READY"
+    },
+    "CTRL-TEST-SUITE": {
+      "category": "contract integrity",
+      "description": "A discoverable test suite exists and runs from the stable command map.",
+      "evidence_source": "tests/ + make test",
+      "remediation": "Add a tests/ tree and wire `make test`.",
+      "blocks": "AUTHOR_READY"
+    },
+    "CTRL-DETERMINISTIC-AUDIT": {
+      "category": "contract integrity",
+      "description": "A deterministic, model-free audit runs before any model review (tamper/secret/dangerous-command detection).",
+      "evidence_source": "scripts/aers/audit.py + audit command",
+      "remediation": "Restore scripts/aers/audit.py and the audit command.",
+      "blocks": "AUTHOR_READY"
+    },
+    "CTRL-CONTRACT-INTEGRITY": {
+      "category": "contract integrity",
+      "description": "Feature/task contracts are typed, schema-validated, and read at an immutable ref.",
+      "evidence_source": ".agents/schemas/feature-contract.schema.json + contracts.py",
+      "remediation": "Provide the feature-contract and tasks schemas and the contract loader.",
+      "blocks": "AUTHOR_READY"
+    },
+    "CTRL-DIFFERENTIAL-TEST": {
+      "category": "evaluator health",
+      "description": "New regression tests must fail on the base revision (a non-discriminating test is rejected).",
+      "evidence_source": "author-verify differential gate",
+      "remediation": "Enable the differential gate in author-verify and require it in Standard+.",
+      "blocks": "AUTHOR_READY"
+    },
+    "CTRL-REVIEWER-INDEPENDENCE": {
+      "category": "reviewer independence",
+      "description": "An independent reviewer in a separate context reviews the exact candidate, bound to its digest.",
+      "evidence_source": "loop.py reviewer stage + reviewer-report schema",
+      "remediation": "Wire AERS_REVIEWER_CMD_JSON with a reviewer that binds to candidate_sha.",
+      "blocks": "AUTHOR_READY"
+    },
+    "CTRL-SECOND-REVIEWER-R2": {
+      "category": "reviewer independence",
+      "description": "R2 work requires a second reviewer from a meaningfully different harness/model.",
+      "evidence_source": "aers.toml verification.require_second_reviewer_r2 + loop.py",
+      "remediation": "Set verification.require_second_reviewer_r2 = true and wire AERS_SECOND_REVIEWER_CMD_JSON.",
+      "blocks": "AUTHOR_READY"
+    },
+    "CTRL-ISOLATION": {
+      "category": "isolation",
+      "description": "Network/sandbox isolation is classified by an explicit truth model; asserted is not proven.",
+      "evidence_source": "scripts/aers_assure/isolation.py",
+      "remediation": "Adopt the isolation truth model and fail closed for R2+ on ASSERTED_ISOLATED.",
+      "blocks": "VERIFIED"
+    },
+    "CTRL-EXTERNAL-VERIFIER": {
+      "category": "attestation",
+      "description": "A separate protected verifier trust domain (repo/service) issues VERIFIED; local code cannot.",
+      "evidence_source": "assurance/schemas + verifier reference + .github/workflows/TRUSTED-VERIFIER.reference.yml.disabled",
+      "remediation": "Deploy the external verifier reference in a separate protected repository or runner.",
+      "blocks": "VERIFIED"
+    },
+    "CTRL-PRIVATE-ORACLE": {
+      "category": "private-oracle separation",
+      "description": "Private tests/holdouts live outside the author trust domain and are never exposed to candidate code.",
+      "evidence_source": ".agents/trusted/private-eval-contract.json + external store",
+      "remediation": "Host private holdouts in the verifier trust domain, not in this repository.",
+      "blocks": "VERIFIED"
+    },
+    "CTRL-ATTESTATION": {
+      "category": "attestation",
+      "description": "Attestations bind candidate, policy, and evidence digests and resist tamper/substitution/replay.",
+      "evidence_source": "scripts/aers_assure/verifier.py",
+      "remediation": "Adopt the DSSE-style attestation and verify_attestation binding checks.",
+      "blocks": "VERIFIED"
+    },
+    "CTRL-SIGNED-PROVENANCE": {
+      "category": "provenance",
+      "description": "Released artifacts carry signed build provenance (SLSA/in-toto style) from the verifier domain.",
+      "evidence_source": ".agents/policies/release-policy.json requires build_provenance/signed_artifact",
+      "remediation": "Produce signed provenance in the release/verifier domain.",
+      "blocks": "VERIFIED"
+    },
+    "CTRL-MEMORY-GOVERNANCE": {
+      "category": "memory governance",
+      "description": "Memory is quarantined; promotion requires a separate curator identity and multiple runs; no self-promotion.",
+      "evidence_source": ".agents/policies/memory-policy.json + memory.py",
+      "remediation": "Keep proposer_may_approve=false and require AERS_CURATOR_ID for promotion.",
+      "blocks": "AUTHOR_READY"
+    },
+    "CTRL-DEPENDENCY-GOVERNANCE": {
+      "category": "dependency governance",
+      "description": "Dependencies/skills are pinned and hash-verified; third-party skills treated as dependencies.",
+      "evidence_source": ".agents/skills/skills.lock.json + skills-policy.json",
+      "remediation": "Pin skills with sha256 in skills.lock.json and enforce hashes in lint.",
+      "blocks": "AUTHOR_READY"
+    },
+    "CTRL-ROLLBACK": {
+      "category": "rollback readiness",
+      "description": "Every feature contract declares a rollout strategy and a rollback path.",
+      "evidence_source": "feature.contract.json rollout.rollback",
+      "remediation": "Require rollout.strategy and rollout.rollback in every feature contract (already enforced).",
+      "blocks": "AUTHOR_READY"
+    },
+    "CTRL-OBSERVABILITY": {
+      "category": "observability",
+      "description": "Runs emit normalized, redacted trajectory/telemetry evidence.",
+      "evidence_source": "aers.toml [telemetry] + trajectory schema",
+      "remediation": "Emit trajectory JSONL and keep redact_by_default=true.",
+      "blocks": "AUTHOR_READY"
+    },
+    "CTRL-RELEASE-SEGREGATION": {
+      "category": "release segregation",
+      "description": "Release runs in a separate identity; no release from an author worktree; no direct production shell.",
+      "evidence_source": ".agents/policies/release-policy.json + roles/release-controller.md",
+      "remediation": "Keep release-policy forbidding release_from_worktree and agent_direct_production_shell.",
+      "blocks": "VERIFIED"
+    },
+    "CTRL-EVIDENCE-RETENTION": {
+      "category": "evidence retention",
+      "description": "An immutable, machine-readable evidence manifest is retained per candidate.",
+      "evidence_source": "aers assure evidence-manifest",
+      "remediation": "Generate and retain an evidence manifest for each candidate.",
+      "blocks": "VERIFIED"
+    },
+    "CTRL-EVALUATOR-HEALTH": {
+      "category": "evaluator health",
+      "description": "The reviewers/auditors themselves are tested against seeded defects and canaries.",
+      "evidence_source": "aers assure evaluator-health + assurance/health/health-cases.jsonl",
+      "remediation": "Run the evaluator-health suite and block evaluator promotion on regression.",
+      "blocks": "VERIFIED"
+    },
+    "CTRL-SEGREGATION-OF-DUTIES": {
+      "category": "release segregation",
+      "description": "Author, reviewer, verifier, and release identities are distinct and non-overlapping.",
+      "evidence_source": "CODEOWNERS + roles + release-policy",
+      "remediation": "Assign distinct identities per duty and record them.",
+      "blocks": "VERIFIED"
+    },
+    "CTRL-APPROVAL-RECORDS": {
+      "category": "evidence retention",
+      "description": "Human/external approvals are recorded with identity and timestamp.",
+      "evidence_source": "ledger events + attestation records",
+      "remediation": "Record approval events in the ledger and evidence manifest.",
+      "blocks": "VERIFIED"
+    },
+    "CTRL-POLICY-VERSION-PINNING": {
+      "category": "contract integrity",
+      "description": "Attestations pin the exact policy digest used, so post-hoc policy edits are detectable.",
+      "evidence_source": "handoff.policy_digest + attestation binding",
+      "remediation": "Pin policy_digest in the handoff and bind it in the attestation.",
+      "blocks": "VERIFIED"
+    },
+    "CTRL-EXCEPTION-HANDLING": {
+      "category": "evidence retention",
+      "description": "Exceptions/waivers are auditable, time-bounded, and recorded rather than silent.",
+      "evidence_source": "docs/RESIDUAL-RISK.md + ledger",
+      "remediation": "Record every waiver with owner, scope, and expiry.",
+      "blocks": "VERIFIED"
+    },
+    "CTRL-RETENTION-REDACTION": {
+      "category": "evidence retention",
+      "description": "Evidence is retained with default redaction of secrets/PII.",
+      "evidence_source": "aers.toml [telemetry] redact_by_default + util.redact",
+      "remediation": "Keep redact_by_default=true and capture_content=false.",
+      "blocks": "VERIFIED"
+    }
+  }
+}

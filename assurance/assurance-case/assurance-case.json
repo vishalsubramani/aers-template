@@ -1,0 +1,203 @@
+{
+  "schema_version": 1,
+  "version": "1.0.0",
+  "description": "Evidence-linked assurance case for AERS. Each material trust claim maps to implementation, tests, and adversarial benchmark cases. Digests are refreshed with `assure assurance --refresh` after an intentional change.",
+  "claims": [
+    {
+      "id": "CLAIM-LOCAL-VERIFIED",
+      "text": "Repository-local code cannot issue a production-valid VERIFIED result.",
+      "enforcing_control": "CTRL-EXTERNAL-VERIFIER",
+      "implementation": [
+        "scripts/aers_assure/verifier.py"
+      ],
+      "tests": [
+        "tests/aers_selftest/test_verifier.py::test_local_cannot_produce_production_valid_verified"
+      ],
+      "benchmark_cases": [
+        "BENCH-ATT-001"
+      ],
+      "ci_evidence": "make verify + make assurance",
+      "evidence_digest": "435918e56516f63cea474cfd7e34bd66be7fdb8630a2985d10bc0733e5700483",
+      "residual_limitations": "A compromised external verifier key is outside this repository's control."
+    },
+    {
+      "id": "CLAIM-ATTESTATION-BINDING",
+      "text": "Attestations bind candidate, policy, and evidence digests; tamper, substitution, and replay are detected.",
+      "enforcing_control": "CTRL-ATTESTATION",
+      "implementation": [
+        "scripts/aers_assure/verifier.py"
+      ],
+      "tests": [
+        "tests/aers_selftest/test_verifier.py"
+      ],
+      "benchmark_cases": [
+        "BENCH-ATT-002",
+        "BENCH-ATT-003",
+        "BENCH-ATT-004",
+        "BENCH-ATT-005",
+        "BENCH-ATT-006"
+      ],
+      "ci_evidence": "make verify",
+      "evidence_digest": "435918e56516f63cea474cfd7e34bd66be7fdb8630a2985d10bc0733e5700483",
+      "residual_limitations": "Freshness relies on the relying party's trusted clock."
+    },
+    {
+      "id": "CLAIM-SCOPE",
+      "text": "Task writes are constrained to the approved write scope.",
+      "enforcing_control": "CTRL-SCOPE-ENFORCEMENT",
+      "implementation": [
+        "scripts/aers/scope.py"
+      ],
+      "tests": [
+        "tests/aers_selftest/test_scope.py"
+      ],
+      "benchmark_cases": [
+        "BENCH-SCOPE-001",
+        "BENCH-SCOPE-004"
+      ],
+      "ci_evidence": "make test + make benchmark",
+      "evidence_digest": "4ecd06100aaa3c270be583f0468c0d464fbe670a367bd7c2b9d5d4b9d11a56d5",
+      "residual_limitations": "In-scope-but-incorrect changes still require reviewer judgment."
+    },
+    {
+      "id": "CLAIM-PROTECTED-PATHS",
+      "text": "Control-plane paths are protected from candidate writes and deletions.",
+      "enforcing_control": "CTRL-PROTECTED-PATHS",
+      "implementation": [
+        "scripts/aers/scope.py"
+      ],
+      "tests": [
+        "tests/aers_selftest/test_scope_deletions.py"
+      ],
+      "benchmark_cases": [
+        "BENCH-SCOPE-003",
+        "BENCH-SCOPE-007"
+      ],
+      "ci_evidence": "make benchmark",
+      "evidence_digest": "647c3605d0e3f1ce298f0f899c5146c4d36187bea3914efa0f8d064b4fd100c6",
+      "residual_limitations": "Authorized human control-plane changes still require the dogfooding review workflow."
+    },
+    {
+      "id": "CLAIM-DIFFERENTIAL",
+      "text": "New regression tests must discriminate against the base revision.",
+      "enforcing_control": "CTRL-DIFFERENTIAL-TEST",
+      "implementation": [
+        "scripts/aers/verify.py"
+      ],
+      "tests": [
+        "tests/aers_selftest/test_differential.py"
+      ],
+      "benchmark_cases": [
+        "BENCH-DIFF-001"
+      ],
+      "ci_evidence": "make test + make benchmark",
+      "evidence_digest": "6ca56286183b7c7eaefe28b5970ac053125d5a71b2334524cb06b2073fd6052c",
+      "residual_limitations": "A discriminating test can still be incomplete; coverage is not correctness."
+    },
+    {
+      "id": "CLAIM-MEMORY-NO-SELF-PROMOTE",
+      "text": "Memory cannot promote itself; promotion requires a separate curator and multiple runs.",
+      "enforcing_control": "CTRL-MEMORY-GOVERNANCE",
+      "implementation": [
+        "scripts/aers/memory.py"
+      ],
+      "tests": [
+        "tests/aers_selftest/test_memory.py"
+      ],
+      "benchmark_cases": [
+        "BENCH-MEM-001",
+        "BENCH-MEM-002",
+        "BENCH-MEM-003"
+      ],
+      "ci_evidence": "make test + make benchmark",
+      "evidence_digest": "e11102e52171ebd19f1198dec852c42d87213558b0a7a364f871dc021049a26c",
+      "residual_limitations": "A compromised curator identity is out of scope for the author tier."
+    },
+    {
+      "id": "CLAIM-GUARDRAIL-SAME-RUN",
+      "text": "A task cannot modify a guardrail and rely on the modified guardrail in the same run.",
+      "enforcing_control": "CTRL-POLICY-VERSION-PINNING",
+      "implementation": [
+        "scripts/aers/scope.py"
+      ],
+      "tests": [
+        "tests/aers_selftest/test_scope_immutable_policy.py"
+      ],
+      "benchmark_cases": [
+        "BENCH-SCOPE-003"
+      ],
+      "ci_evidence": "make test + make benchmark",
+      "evidence_digest": "ac19f4152d938825232e6e8685a6584db55525ff894f806df73c876465b0d5de",
+      "residual_limitations": "Policies are read at the immutable contract ref, not the working tree."
+    },
+    {
+      "id": "CLAIM-ISOLATION-TRUTH",
+      "text": "Asserted isolation is not accepted as proven; R2 and above fail closed without stronger evidence.",
+      "enforcing_control": "CTRL-ISOLATION",
+      "implementation": [
+        "scripts/aers_assure/isolation.py"
+      ],
+      "tests": [
+        "tests/aers_selftest/test_isolation.py"
+      ],
+      "benchmark_cases": [
+        "BENCH-ISO-001",
+        "BENCH-ISO-002"
+      ],
+      "ci_evidence": "make verify + make benchmark",
+      "evidence_digest": "9c8152dd1ddc23fb3979ed14c0449e5d1a04548e4b0d8892403a5b7717191e42",
+      "residual_limitations": "A host with no isolation mechanism cannot be upgraded to PROVEN locally."
+    },
+    {
+      "id": "CLAIM-R2-INDEPENDENT-REVIEW",
+      "text": "R2 review requires independent, candidate-bound evidence.",
+      "enforcing_control": "CTRL-REVIEWER-INDEPENDENCE",
+      "implementation": [
+        "scripts/loop.py"
+      ],
+      "tests": [
+        "tests/aers_selftest/test_loop_validators.py"
+      ],
+      "benchmark_cases": [
+        "BENCH-REV-001",
+        "BENCH-REV-002"
+      ],
+      "ci_evidence": "make test + make benchmark",
+      "evidence_digest": "21c391a7b650242b1e38ec31bdc6c7a91c80381d86382d9f1554c4667e584b88",
+      "residual_limitations": "Two correlated reviewers can share a blind spot; evaluator-health monitors this."
+    },
+    {
+      "id": "CLAIM-SECRET-BLOCK",
+      "text": "A credential in a candidate diff is blocked by a hard deterministic gate.",
+      "enforcing_control": "CTRL-DETERMINISTIC-AUDIT",
+      "implementation": [
+        "scripts/aers/audit.py",
+        "scripts/aers/util.py"
+      ],
+      "tests": [
+        "tests/aers_selftest/test_audit.py"
+      ],
+      "benchmark_cases": [
+        "BENCH-AUDIT-004"
+      ],
+      "ci_evidence": "make test + make benchmark",
+      "evidence_digest": "8401e7cec02c774d5f94c4a6b5c7d2d3e1c647768c7a97d116c88457b467a43d",
+      "residual_limitations": "Novel secret formats outside the format-anchored patterns need reviewer attention."
+    },
+    {
+      "id": "CLAIM-EVALUATOR-TESTED",
+      "text": "The evaluator that judges candidates is itself tested for seeded-defect detection and reproducibility.",
+      "enforcing_control": "CTRL-EVALUATOR-HEALTH",
+      "implementation": [
+        "scripts/aers_assure/health.py"
+      ],
+      "tests": [
+        "tests/aers_selftest/test_benchmark_health.py"
+      ],
+      "benchmark_cases": [],
+      "ci_evidence": "make evaluator-health",
+      "evidence_digest": "b64c0a63d1d28ad75c51037edabe6269ac01da2acdc5ced54c0edfc50edef2b4",
+      "residual_limitations": "The health suite tests the deterministic audit; model-reviewer health needs live-model runs."
+    }
+  ]
+}

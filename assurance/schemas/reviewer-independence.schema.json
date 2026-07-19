@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AERS reviewer report with independence metadata (proposed extension)",
+  "description": "Extends .agents/schemas/reviewer-report.schema.json with independence metadata that binds a review to a specific reviewer identity, harness/model family, and the exact candidate. Proposed for in-place adoption via docs/proposed-control-plane-change/.",
+  "type": "object",
+  "required": ["schema_version", "feature_id", "task_id", "candidate_sha", "verdict", "findings", "acceptance_reviewed", "independence"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "feature_id": {"type": "string"},
+    "task_id": {"type": "string"},
+    "candidate_sha": {"type": "string", "description": "MUST equal the exact candidate; a review not bound to it is rejected"},
+    "verdict": {"enum": ["pass", "fail", "needs_review"]},
+    "findings": {"type": "array"},
+    "acceptance_reviewed": {"type": "array", "items": {"type": "string"}},
+    "independence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewer_identity", "model_or_harness_family", "context_id", "policy_digest"],
+      "properties": {
+        "reviewer_identity": {"type": "string"},
+        "model_or_harness_family": {"type": "string", "description": "e.g. distinct model/provider from the first reviewer"},
+        "context_id": {"type": "string", "description": "separate context; MUST differ from the author context"},
+        "policy_digest": {"type": "string", "description": "policy the review was performed under; bound for pinning"},
+        "shared_context_with": {"type": "array", "items": {"type": "string"}, "description": "conflict-of-interest / shared-context indicators"},
+        "conflict_of_interest": {"type": "boolean"}
+      }
+    }
+  }
+}

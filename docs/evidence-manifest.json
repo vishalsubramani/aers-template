@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-19T21:26:45.519470Z",
+  "candidate_sha": "f31a96f617b985c24fbd9981aa1c8aba600b615e",
+  "clean_worktree": false,
+  "requested_profile": "high-assurance",
+  "gates": {
+    "assessment": {
+      "profile": "high-assurance",
+      "overall": "PARTIAL",
+      "required_pass": 18,
+      "required_total": 22,
+      "digest": "4ee5be7ff852bc33a23b64635fe98c5bf2b35050d27f4d8d21114e3041a2154c"
+    },
+    "adversarial_benchmark": {
+      "passed": true,
+      "cases": 35,
+      "contained": 35,
+      "digest": "eb34769b4522e6f28339476aaff993cd61142f19df930a36ecaf32edc4a2ff54"
+    },
+    "assurance_case": {
+      "passed": true,
+      "claims": 11,
+      "broken": 0,
+      "stale": 0,
+      "digest": "9c0df820ee7ebea2e79d0aecd0cdfba9df7e5d126be281e6d64e1bcc4365b1ef"
+    },
+    "threat_model": {
+      "passed": true,
+      "threats": 12,
+      "digest": "43c87d131da7a37ee1a08111cfa11c6195407ceb2f4006fcf4923ef41fea1861"
+    },
+    "evaluator_health": {
+      "passed": true,
+      "detection_rate": 1.0,
+      "digest": "f7aed92026746067262200e3a4627880d85ddf4b76133fc72c7617a786369174"
+    }
+  },
+  "author_side_all_green": true,
+  "verified": false,
+  "statement": "This is AUTHOR-side evidence only. VERIFIED can only be issued by a separate, protected verification trust domain that re-runs these gates and binds this manifest's digests.",
+  "manifest_digest": "055a684eee8c8307d9342894e5be2b41059899a7cdf6c0d53b94bed5885d0af8"
+}

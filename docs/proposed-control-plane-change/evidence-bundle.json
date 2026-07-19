@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "example": true,
+  "note": "Representative evidence bundle for ONE control-plane change (defaulting require_second_reviewer_r2 to true). Values are illustrative; regenerate real digests with `scripts/assure.py handoff` + `evidence-manifest` from the exact candidate.",
+  "change": {
+    "id": "CP-CHANGE-second-reviewer-default",
+    "risk_tier": "R3",
+    "protected_files": ["aers.toml"],
+    "patch": "docs/proposed-control-plane-change/second-reviewer-default.patch",
+    "base_commit": "f31a96f617b985c24fbd9981aa1c8aba600b615e",
+    "dedicated_task_contract": ".specify/specs/<FEAT-CP-01>/tasks.json (opened by control-plane owner)"
+  },
+  "handling": {
+    "immutable_base_commit": true,
+    "explicit_write_scope": ["aers.toml"],
+    "same_run_policy_activation": false,
+    "independent_review_of_exact_candidate": "required (candidate-bound reviewer report)",
+    "differential_or_tamper_testing": "BENCH-REV-001/002 exercise reviewer binding; assess flips CTRL-SECOND-REVIEWER-R2 PARTIAL->PASS",
+    "external_or_simulated_verifier_evidence": "attestation below (offline-demo; NOT production-valid)"
+  },
+  "gates_run": {
+    "make_verify": "green (check, test, security, evals, assure)",
+    "adversarial_benchmark": "35/35 contained",
+    "assess_high_assurance": "CTRL-SECOND-REVIEWER-R2 -> PASS after apply",
+    "assurance_case": "11/11 supported",
+    "evaluator_health": "detection 1.00, false-accept 0.00"
+  },
+  "attestation": {
+    "trust_domain": "offline-demo",
+    "production_valid": false,
+    "reason": "Signed with the published demo key; a production VERIFIED requires the external verifier's private key, which never enters this repository."
+  },
+  "rollback": "git revert of the one-line aers.toml change restores opt-in behavior; no data migration.",
+  "residual_risk": "Until an external verifier is deployed, the VERIFIED verdict for this change is simulated (offline-demo), not production-valid."
+}

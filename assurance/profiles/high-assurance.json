@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "profile_id": "high-assurance",
+  "name": "AERS High Assurance",
+  "version": "1.0.0",
+  "description": "An externally protected verifier, private holdouts, proven or externally attested isolation, signed provenance, two independent reviewers for R2 work, release-identity separation, and staged rollout/rollback gates.",
+  "supersedes": "standard",
+  "controls": {
+    "CTRL-STABLE-COMMANDS": "REQUIRED",
+    "CTRL-SCOPE-ENFORCEMENT": "REQUIRED",
+    "CTRL-PROTECTED-PATHS": "REQUIRED",
+    "CTRL-STATIC-CHECKS": "REQUIRED",
+    "CTRL-TEST-SUITE": "REQUIRED",
+    "CTRL-DETERMINISTIC-AUDIT": "REQUIRED",
+    "CTRL-CONTRACT-INTEGRITY": "REQUIRED",
+    "CTRL-DIFFERENTIAL-TEST": "REQUIRED",
+    "CTRL-REVIEWER-INDEPENDENCE": "REQUIRED",
+    "CTRL-SECOND-REVIEWER-R2": "REQUIRED",
+    "CTRL-MEMORY-GOVERNANCE": "REQUIRED",
+    "CTRL-ROLLBACK": "REQUIRED",
+    "CTRL-DEPENDENCY-GOVERNANCE": "REQUIRED",
+    "CTRL-OBSERVABILITY": "REQUIRED",
+    "CTRL-ISOLATION": "REQUIRED",
+    "CTRL-EXTERNAL-VERIFIER": "REQUIRED",
+    "CTRL-PRIVATE-ORACLE": "REQUIRED",
+    "CTRL-ATTESTATION": "REQUIRED",
+    "CTRL-SIGNED-PROVENANCE": "REQUIRED",
+    "CTRL-RELEASE-SEGREGATION": "REQUIRED",
+    "CTRL-EVALUATOR-HEALTH": "REQUIRED",
+    "CTRL-EVIDENCE-RETENTION": "REQUIRED"
+  }
+}

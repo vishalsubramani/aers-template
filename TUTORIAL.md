@@ -283,6 +283,34 @@ limits; never wire `allow_local_verified`.
 - **Changing a contract**: registered packs are immutable; author a new
   version (new feature id or bumped version) and re-register.
 
+## Assurance layer: assess, benchmark, attest
+
+The additive assurance layer (`scripts/assure.py`) makes AERS's trust claims
+falsifiable and reports honestly. It never issues `VERIFIED`.
+
+- **Assess** a repo against a profile:
+  `python3 scripts/assure.py assess --profile standard`. Each control is
+  `PASS/FAIL/PARTIAL/NOT_APPLICABLE/UNVERIFIABLE`; externally-dependent controls
+  are never `PASS` from inside the repo. Profiles and the incremental path are in
+  `docs/ADOPTION.md`.
+- **Benchmark**: `python3 scripts/assure.py benchmark` runs 35 seeded adversarial
+  cases against the live gates (scope, audit, differential, attestation,
+  isolation, memory, reviewer, contract). A pass means the control actually
+  contained the attack.
+- **Assurance case**: `python3 scripts/assure.py assurance` checks that every
+  material claim still maps to real implementation, tests, and benchmark cases;
+  it flags `BROKEN` and `STALE` mappings. After an intentional change, refresh
+  with `--refresh`.
+- **External verifier**: build an immutable handoff, produce an offline-demo
+  attestation, and verify it fail-closed:
+  `python3 scripts/assure.py handoff ...` → `attest-demo` → `verify-attestation`.
+  The result is `production_valid: false` — by design, local code cannot mint a
+  production `VERIFIED`.
+- **Migration**: `python3 scripts/assure.py migrate --assess <repo>` prints a
+  non-destructive plan and a profile recommendation (`docs/MIGRATION.md`).
+
+Residual risks are enumerated in `docs/RESIDUAL-RISK.md`.
+
 ## Troubleshooting
 
 | Symptom | Meaning | Fix |

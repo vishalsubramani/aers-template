@@ -173,11 +173,41 @@ tests, the trusted verifier identity, release credentials, memory promotion
 approval, and private eval holdouts. `docs/THREAT-MODEL.md` enumerates the
 threats; `SECURITY.md` states the Rule of Two for capability combinations.
 
+## Assurance layer (production hardening)
+
+An additive, author-side layer (`scripts/aers_assure/`, `assurance/`) makes the
+trust claims falsifiable and adoptable without touching the protected control
+plane. It never issues `VERIFIED`.
+
+```
+python3 scripts/assure.py assess --profile high-assurance   # compliance/maturity per control
+python3 scripts/assure.py benchmark                          # 35 seeded adversarial cases vs live gates
+python3 scripts/assure.py assurance                          # evidence-linked claims -> tests + benchmark
+python3 scripts/assure.py threat-model                       # structured threat matrix
+python3 scripts/assure.py evaluator-health                   # test the evaluator itself
+python3 scripts/assure.py verify-attestation ...             # fail-closed; local can never be production-valid
+```
+
+- **Profiles** — Lite → Standard → High Assurance → Regulated, machine-readable
+  in `assurance/profiles/*.json`. See `docs/ADOPTION.md`.
+- **External verifier** — DSSE-style bound attestation; the repository holds no
+  production key, so local code cannot mint a production `VERIFIED`
+  (`scripts/aers_assure/verifier.py`, ADR-0002).
+- **Isolation truth model** — five states; R2+ fails closed on asserted-only
+  isolation (ADR-0003).
+- **Migration** — non-destructive, idempotent; `python3 scripts/assure.py
+  migrate --assess <repo>` (see `docs/MIGRATION.md`).
+- **Residual risks** are listed explicitly in `docs/RESIDUAL-RISK.md`, never
+  hidden behind a green check.
+
+`make verify` now also runs the author-side assurance gates (`make assure`).
+
 ## Learn more
 
 - `TUTORIAL.md` — adoption, the demo end to end, wiring real agents, reading
   evidence, day-2 operations
+- `docs/ADOPTION.md` / `docs/MIGRATION.md` — profiles and the incremental path
 - `docs/GOLD-STANDARD.md` — the full standard: seven planes, every practice,
   and why each exists
 - `docs/THREAT-MODEL.md` — what can attack an autonomous repo and what
-  contains it
+  contains it (structured source in `assurance/threats/threat-model.json`)

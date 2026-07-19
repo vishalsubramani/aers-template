@@ -1,0 +1,11 @@
+--- a/aers.toml
++++ b/aers.toml
+@@ -19,7 +19,7 @@
+ # When true, R2 tasks refuse to reach AUTHOR_READY without a second,
+ # independent reviewer (AERS_SECOND_REVIEWER_CMD_JSON — use a different
+ # model/harness than the first reviewer).
+-require_second_reviewer_r2 = false
++require_second_reviewer_r2 = true
+
+ [security]
+ rule_of_two = true

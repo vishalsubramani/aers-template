@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "feature_id": "FEAT-PA1",
+  "title": "Production-assurance layer: external verifier, adversarial benchmark, compliance/assurance, isolation truth model",
+  "spec_mode": "S2",
+  "risk_tier": "R2",
+  "status": "approved",
+  "owner": "principal-architect",
+  "base_ref": "f31a96f617b985c24fbd9981aa1c8aba600b615e",
+  "acceptance_criteria": [
+    {
+      "id": "AC-EXT-VERIFIER",
+      "statement": "THE SYSTEM SHALL provide an external-verifier protocol with an immutable candidate handoff and a DSSE-style attestation such that repository-local code cannot produce a production-valid VERIFIED, and candidate/policy/evidence substitution, result tampering, and stale replay are all detected.",
+      "evidence": "tests/aers_selftest/test_verifier.py + BENCH-ATT-00x"
+    },
+    {
+      "id": "AC-BENCHMARK",
+      "statement": "THE SYSTEM SHALL provide an executable adversarial benchmark of at least 25 seeded cases that each drive a live AERS control and assert the expected containment.",
+      "evidence": "python3 scripts/assure.py benchmark"
+    },
+    {
+      "id": "AC-ASSESS",
+      "statement": "THE SYSTEM SHALL provide a machine-readable compliance/maturity assessment that reports PASS/FAIL/PARTIAL/NOT_APPLICABLE/UNVERIFIABLE per control and detects deliberately missing controls, never marking an externally-dependent control PASS from inside the repo.",
+      "evidence": "python3 scripts/assure.py assess + tests/aers_selftest/test_assess_assurance.py"
+    },
+    {
+      "id": "AC-ASSURANCE",
+      "statement": "THE SYSTEM SHALL provide an evidence-linked assurance case that maps each material claim to implementation, tests, and benchmark cases and detects broken or stale claim mappings.",
+      "evidence": "python3 scripts/assure.py assurance + tests/aers_selftest/test_assess_assurance.py"
+    },
+    {
+      "id": "AC-ISOLATION",
+      "statement": "THE SYSTEM SHALL replace asserted isolation with an explicit truth model whose R2+ decisions fail closed when isolation is only asserted.",
+      "evidence": "tests/aers_selftest/test_isolation.py + BENCH-ISO-00x"
+    },
+    {
+      "id": "AC-THREAT",
+      "statement": "THE SYSTEM SHALL provide a structured threat model in which every critical threat maps to a containment control and at least one executable benchmark case, with an explicit residual-risk statement.",
+      "evidence": "python3 scripts/assure.py threat-model + tests/aers_selftest/test_benchmark_health.py"
+    },
+    {
+      "id": "AC-HEALTH",
+      "statement": "THE SYSTEM SHALL test the evaluator itself for seeded-defect detection, false acceptance/rejection, and reproducibility, binding results to the exact evaluator configuration.",
+      "evidence": "python3 scripts/assure.py evaluator-health"
+    },
+    {
+      "id": "AC-MIGRATE",
+      "statement": "THE SYSTEM SHALL keep installation non-destructive and idempotent and provide an inspectable migration plan and profile recommendation.",
+      "evidence": "tests/aers_selftest/test_migrate_idempotency.py"
+    }
+  ],
+  "contracts": [
+    "scripts/assure.py exposes: assess, profiles, benchmark, assurance, threat-model, evaluator-health, isolation, handoff, attest-demo, verify-attestation, evidence-manifest, migrate",
+    "verifier.verify_attestation(envelope, handoff) -> {valid, production_valid, verdict, reasons} and is fail-closed",
+    "assurance profiles are JSON with REQUIRED/RECOMMENDED/OPTIONAL/NOT_APPLICABLE per control"
+  ],
+  "quality": {
+    "tests": "python3 -m unittest discover -s tests",
+    "non_goals": "This layer never issues VERIFIED, never mutates the protected control plane, and does not deploy a production verifier (that is external)."
+  },
+  "rollout": {
+    "strategy": "Additive layer merged behind the existing gates; new author-side assurance targets added to make verify without weakening any existing check.",
+    "rollback": "git revert of the FEAT-PA1 commits; the pre-existing control plane is untouched, so revert is clean and non-destructive."
+  }
+}

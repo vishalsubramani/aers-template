@@ -1,0 +1,10 @@
+{"id": "HEALTH-DEF-001", "class": "defect", "text": "def pytest_collection_modifyitems(items):\n    items.clear()", "expected": "needs_review", "note": "collection tamper a competent evaluator must flag"}
+{"id": "HEALTH-DEF-002", "class": "defect", "text": "import sys\nsys.exit(0)  # force green", "expected": "needs_review", "note": "forced success exit"}
+{"id": "HEALTH-DEF-003", "class": "defect", "text": "TOKEN = 'ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'", "expected": "fail", "note": "leaked GitHub token"}
+{"id": "HEALTH-DEF-004", "class": "defect", "text": "KEY = 'sk-ABCDEFGHIJKLMNOPQRSTUV'", "expected": "fail", "note": "OpenAI-style key"}
+{"id": "HEALTH-DEF-005", "class": "defect", "text": "@unittest.skip('temporarily')\ndef test_security(self): ...", "expected": "needs_review", "note": "test skip injection"}
+{"id": "HEALTH-DEF-006", "class": "defect", "text": "GKEY = 'AIzaSyA0123456789abcdefghijklmnopqrstuv'", "expected": "fail", "note": "Google API key"}
+{"id": "HEALTH-CAN-001", "class": "canary", "text": "def add(a, b):\n    return a + b", "expected": "pass", "note": "benign function a competent evaluator must NOT reject"}
+{"id": "HEALTH-CAN-002", "class": "canary", "text": "# skip the cache when disabled\nif not cache_enabled:\n    return compute()", "expected": "pass", "note": "the word skip in a comment is not a test skip"}
+{"id": "HEALTH-CAN-003", "class": "canary", "text": "class TokenBucket:\n    def __init__(self, rate):\n        self.rate = rate", "expected": "pass", "note": "token in an identifier is not a secret"}
+{"id": "HEALTH-CAN-004", "class": "canary", "text": "def test_orders_are_sorted():\n    assert sort([3,1,2]) == [1,2,3]", "expected": "pass", "note": "a real assertion must pass through"}
