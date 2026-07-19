@@ -11,13 +11,15 @@
         "scripts/aers_assure/verifier.py"
       ],
       "tests": [
-        "tests/aers_selftest/test_verifier.py::test_local_cannot_produce_production_valid_verified"
+        "tests/aers_selftest/test_verifier.py::test_caller_chosen_production_key_cannot_create_production_valid_result",
+        "tests/aers_selftest/test_verifier.py::test_local_demo_is_valid_but_never_production"
       ],
       "benchmark_cases": [
-        "BENCH-ATT-001"
+        "BENCH-ATT-001",
+        "BENCH-ATT-007"
       ],
       "ci_evidence": "make verify + make assurance",
-      "evidence_digest": "435918e56516f63cea474cfd7e34bd66be7fdb8630a2985d10bc0733e5700483",
+      "evidence_digest": "c74238d8892c4d4b2fef25792813c63ec9b2ccdae6263cf0d654018a716adf96",
       "residual_limitations": "A compromised external verifier key is outside this repository's control."
     },
     {
@@ -38,7 +40,7 @@
         "BENCH-ATT-006"
       ],
       "ci_evidence": "make verify",
-      "evidence_digest": "435918e56516f63cea474cfd7e34bd66be7fdb8630a2985d10bc0733e5700483",
+      "evidence_digest": "0469887d2a4400520bcc2e29f7d1498b8db00dfae15b2da04932481c78a6bed4",
       "residual_limitations": "Freshness relies on the relying party's trusted clock."
     },
     {
@@ -56,7 +58,7 @@
         "BENCH-SCOPE-004"
       ],
       "ci_evidence": "make test + make benchmark",
-      "evidence_digest": "4ecd06100aaa3c270be583f0468c0d464fbe670a367bd7c2b9d5d4b9d11a56d5",
+      "evidence_digest": "60a8d3e5f78c66be7b2583982f4abb5bcd81ba8ba8b908be2ea952df6434e414",
       "residual_limitations": "In-scope-but-incorrect changes still require reviewer judgment."
     },
     {
@@ -74,7 +76,7 @@
         "BENCH-SCOPE-007"
       ],
       "ci_evidence": "make benchmark",
-      "evidence_digest": "647c3605d0e3f1ce298f0f899c5146c4d36187bea3914efa0f8d064b4fd100c6",
+      "evidence_digest": "84beb2242ef29275f34071e6f6a1a43bd93fce3d50c42d490477a240efc34a39",
       "residual_limitations": "Authorized human control-plane changes still require the dogfooding review workflow."
     },
     {
@@ -91,7 +93,7 @@
         "BENCH-DIFF-001"
       ],
       "ci_evidence": "make test + make benchmark",
-      "evidence_digest": "6ca56286183b7c7eaefe28b5970ac053125d5a71b2334524cb06b2073fd6052c",
+      "evidence_digest": "4fd0569cb60cf4445ddb373cc44e5cec8f5d8121578728666abc8c99309f3f84",
       "residual_limitations": "A discriminating test can still be incomplete; coverage is not correctness."
     },
     {
@@ -110,7 +112,7 @@
         "BENCH-MEM-003"
       ],
       "ci_evidence": "make test + make benchmark",
-      "evidence_digest": "e11102e52171ebd19f1198dec852c42d87213558b0a7a364f871dc021049a26c",
+      "evidence_digest": "d72e31f60e254e6c22ed96c66c7f10090e9119edc2bda4ee496132b7492e6d40",
       "residual_limitations": "A compromised curator identity is out of scope for the author tier."
     },
     {
@@ -127,7 +129,7 @@
         "BENCH-SCOPE-003"
       ],
       "ci_evidence": "make test + make benchmark",
-      "evidence_digest": "ac19f4152d938825232e6e8685a6584db55525ff894f806df73c876465b0d5de",
+      "evidence_digest": "a7e324d19d2584de7f4ffb207ba292ed13ffbe6fdb835295f4e5cb64c9ba9e8b",
       "residual_limitations": "Policies are read at the immutable contract ref, not the working tree."
     },
     {
@@ -142,11 +144,12 @@
       ],
       "benchmark_cases": [
         "BENCH-ISO-001",
-        "BENCH-ISO-002"
+        "BENCH-ISO-002",
+        "BENCH-ISO-003"
       ],
       "ci_evidence": "make verify + make benchmark",
-      "evidence_digest": "9c8152dd1ddc23fb3979ed14c0449e5d1a04548e4b0d8892403a5b7717191e42",
-      "residual_limitations": "A host with no isolation mechanism cannot be upgraded to PROVEN locally."
+      "evidence_digest": "36b25db072c16ed77755d4f4857ae3eb356de03c883243f4ce60561a68245974",
+      "residual_limitations": "Enforced by the additive isolation gate + benchmark; forged/unsigned tokens are rejected. Integration into the protected scripts/aers/verify.py AUTHOR_READY path is staged in docs/proposed-control-plane-change/ for a human control-plane PR."
     },
     {
       "id": "CLAIM-R2-INDEPENDENT-REVIEW",
@@ -163,7 +166,7 @@
         "BENCH-REV-002"
       ],
       "ci_evidence": "make test + make benchmark",
-      "evidence_digest": "21c391a7b650242b1e38ec31bdc6c7a91c80381d86382d9f1554c4667e584b88",
+      "evidence_digest": "8fcd7eaf51eb1cfbf70362c3d5d1fb7270a794e0173659b38d4cf35e2d208096",
       "residual_limitations": "Two correlated reviewers can share a blind spot; evaluator-health monitors this."
     },
     {
@@ -181,7 +184,7 @@
         "BENCH-AUDIT-004"
       ],
       "ci_evidence": "make test + make benchmark",
-      "evidence_digest": "8401e7cec02c774d5f94c4a6b5c7d2d3e1c647768c7a97d116c88457b467a43d",
+      "evidence_digest": "1ff3a522e01eb9182fda5e50983931175784858e3f3d7d8e0975fda6386bb5d1",
       "residual_limitations": "Novel secret formats outside the format-anchored patterns need reviewer attention."
     },
     {
@@ -196,7 +199,7 @@
       ],
       "benchmark_cases": [],
       "ci_evidence": "make evaluator-health",
-      "evidence_digest": "b64c0a63d1d28ad75c51037edabe6269ac01da2acdc5ced54c0edfc50edef2b4",
+      "evidence_digest": "11229dc68f96979f1095eb918c845f279c3066c416bcc8209548fbf15e0d3d22",
       "residual_limitations": "The health suite tests the deterministic audit; model-reviewer health needs live-model runs."
     }
   ]

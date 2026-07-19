@@ -21,16 +21,18 @@ class BenchmarkTests(unittest.TestCase):
 
 
 class BaselineTests(unittest.TestCase):
-    def test_more_gates_strictly_reduce_false_pass(self):
-        report = baseline.run_baseline(REPO)
-        by_mode = {r["mode"]: r["derived"]["false_pass_rate"] for r in report["rows"]}
-        # Unconstrained lets everything through; AERS modes let strictly less.
+    def test_more_gates_strictly_reduce_observed_false_pass(self):
+        # Reuse a single benchmark run so containment is observed, not assumed.
+        bench = benchmark.run_benchmark(REPO)
+        report = baseline.run_baseline(REPO, bench_report=bench)
+        by_mode = {r["mode"]: r["measured"]["false_pass_rate_observed"] for r in report["rows"]}
         self.assertEqual(by_mode["unconstrained"], 1.0)
         self.assertLess(by_mode["aers_lite"], by_mode["unconstrained"])
         self.assertLess(by_mode["aers_standard"], by_mode["aers_lite"])
         self.assertLessEqual(by_mode["aers_high_assurance"], by_mode["aers_standard"])
-        # High assurance contains every seeded attack kind in the benchmark.
         self.assertEqual(by_mode["aers_high_assurance"], 0.0)
+        # Task success / false-reject are NOT fabricated.
+        self.assertIsNone(report["rows"][0]["not_measured"]["task_success_rate"])
 
 
 class HealthTests(unittest.TestCase):

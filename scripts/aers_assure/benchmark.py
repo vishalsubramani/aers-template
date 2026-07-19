@@ -164,6 +164,18 @@ def _probe_attestation(tmp: Path, params: dict[str, Any]) -> tuple[list[str], st
     envelope = verifier.make_attestation(handoff, "VERIFIED", ["ALL_CHECKS_PASS"], "demo-verifier")
     now_iso = None
     tamper = params.get("tamper", "none")
+    if tamper == "caller_root":
+        # Attacker signs with a self-chosen keypair and supplies its public key
+        # as a caller-defined production root. Must NOT be production_valid.
+        from . import _ed25519 as ed
+        seed = bytes(range(3, 35))
+        pub = ed.publickey(seed).hex()
+        envelope = verifier.make_attestation(handoff, "VERIFIED", ["ALL_CHECKS_PASS"], "attacker",
+                                             signer_seed=seed, keyid="attacker-key")
+        store = {"demo_keys": {}, "production_keys": {"attacker-key": pub}}
+        verdict_result = verifier.verify_attestation(envelope, handoff, trust_store=store)
+        reasons = list(verdict_result["reasons"])
+        return reasons, ("allowed" if verdict_result["production_valid"] else "blocked")
     if tamper == "verdict":
         # Re-sign a REJECTED verdict but the relying party expects VERIFIED; or
         # flip the decoded payload without re-signing (result tampering).

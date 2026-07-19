@@ -1,26 +1,30 @@
-"""External verifier reference: immutable candidate handoff, DSSE-style signed
-attestation, and tamper/substitution/replay-resistant verification.
+"""External verifier reference: immutable candidate handoff, DSSE-style
+attestation signed with ASYMMETRIC (Ed25519) keys, and fail-closed verification.
 
-TRUST-DOMAIN SEPARATION (read this before trusting any output here).
-This module models the *protocol* between the authoring trust domain (this
-repository, where an agent produces AUTHOR_READY candidates) and a separate
-verification trust domain that alone may issue VERIFIED. The offline-demo signer
-below uses a well-known, published demo key. It can therefore only produce a
-*demo-scoped* attestation: `production_valid` is structurally False for anything
-the repository can sign, because the repository trust-store carries no production
-verifier keys (`production_keys` is empty). A real production VERIFIED requires an
-external verifier that holds a private signing key which never enters this
-repository, and whose public key is supplied out-of-band to the party checking
-the attestation (see AERS_EXTERNAL_TRUST_STORE).
+WHY ASYMMETRIC (this is the core of the trust model).
+The verifier signs with a PRIVATE key that never enters this repository. The
+repository and relying parties hold only PUBLIC verification keys. Because
+producing a signature requires the private key, no repository-local code can
+forge a signature that verifies under a legitimate production public key — even
+if it can see or supply the public key. This is strictly stronger than a shared
+(HMAC) secret, where holding the verification key would let you sign.
 
-Nothing in this module gives repository-local code the ability to mint a
-production-valid VERIFIED. That is the point, and tests/aers_selftest proves it.
+Two independent barriers make `production_valid` unreachable from inside the repo:
+  1. No production PRIVATE key exists here (only a published demo keypair whose
+     public key is marked non-production).
+  2. `verify_attestation` will not honor caller-supplied production trust roots
+     unless an explicit test-only flag is set; by default production public keys
+     come only from an out-of-band store OUTSIDE the repository.
+
+The pure-Python Ed25519 in `_ed25519.py` is a self-contained reference whose
+VERIFICATION path is RFC-8032 correct (it accepts genuine Ed25519 signatures and
+rejects forgeries — see tests). Production deployments swap in an audited signing
+library on the verifier side; this module verifies those signatures unchanged.
 """
 from __future__ import annotations
 
 import base64
 import hashlib
-import hmac
 import json
 import os
 from datetime import datetime, timedelta, timezone
@@ -28,22 +32,24 @@ from pathlib import Path
 from typing import Any
 
 from aers.git import read_file_at_ref, rev_parse, run_git
-from aers.util import canonical_json, load_json, sha256_bytes, sha256_text, utc_now
+from aers.util import canonical_json, find_repo_root, load_json, sha256_bytes, sha256_text, utc_now
+from . import _ed25519 as ed
 
 # ---------------------------------------------------------------------------
-# Constants. The demo key is intentionally public: it exists so the protocol can
-# be exercised fully offline. It is NOT a secret and confers no production trust.
+# Demo keypair. The SEED is intentionally published — it exists only so the
+# protocol can be exercised offline. Its public key is registered as a DEMO key,
+# never a production key, so anything it signs is demo-scoped by construction.
 # ---------------------------------------------------------------------------
-DEMO_KEY_ID = "aers-offline-demo-v1"
-_DEMO_KEY = b"AERS-OFFLINE-DEMO-KEY-NOT-FOR-PRODUCTION-USE"
+DEMO_KEY_ID = "aers-offline-demo-ed25519-v1"
+_DEMO_SEED = hashlib.sha256(b"AERS-OFFLINE-DEMO-SEED-NOT-FOR-PRODUCTION").digest()  # 32 bytes
+DEMO_PUBLIC_KEY = ed.publickey(_DEMO_SEED)
+DEMO_PUBLIC_HEX = DEMO_PUBLIC_KEY.hex()
+
 PAYLOAD_TYPE = "application/vnd.aers.verification+json"
 STATEMENT_TYPE = "https://in-toto.io/Statement/v1"
 PREDICATE_TYPE = "https://aers.dev/attestation/verification/v1"
 VALID_VERDICTS = {"VERIFIED", "REJECTED", "INFRASTRUCTURE_ERROR"}
 
-# Policy files whose content defines what a candidate is allowed to do. The
-# handoff pins a digest over these so a verifier can detect policy substitution
-# between authoring time and verification time.
 POLICY_FILES = [
     ".agents/policies/protected-paths.json",
     ".agents/policies/verification-policy.json",
@@ -58,61 +64,56 @@ POLICY_FILES = [
 
 
 # ---------------------------------------------------------------------------
-# DSSE (Dead Simple Signing Envelope) primitives.
+# DSSE primitives (Ed25519 signatures).
 # ---------------------------------------------------------------------------
 def _pae(payload_type: str, payload: bytes) -> bytes:
-    """DSSE pre-authentication encoding — binds the payload type into the signed
-    bytes so a payload cannot be reinterpreted under a different type."""
     return b"DSSEv1 %d %s %d %s" % (len(payload_type), payload_type.encode("utf-8"), len(payload), payload)
 
 
-def _mac(key: bytes, payload_type: str, payload: bytes) -> str:
-    return hmac.new(key, _pae(payload_type, payload), hashlib.sha256).hexdigest()
-
-
-def sign_demo(statement: dict[str, Any]) -> dict[str, Any]:
-    """Produce a DSSE envelope over `statement` using the published demo key.
-
-    This is the ONLY signer in the repository. It can never yield a
-    production-valid attestation because DEMO_KEY_ID is not a production key.
-    """
+def sign_ed25519(statement: dict[str, Any], seed: bytes, keyid: str) -> dict[str, Any]:
     payload = canonical_json(statement).encode("utf-8")
-    b64 = base64.standard_b64encode(payload).decode("ascii")
-    signature = _mac(_DEMO_KEY, PAYLOAD_TYPE, payload)
+    pub = ed.publickey(seed)
+    sig = ed.signature(_pae(PAYLOAD_TYPE, payload), seed, pub)
     return {
         "payloadType": PAYLOAD_TYPE,
-        "payload": b64,
-        "signatures": [{"keyid": DEMO_KEY_ID, "sig": signature}],
+        "payload": base64.standard_b64encode(payload).decode("ascii"),
+        "signatures": [{"keyid": keyid, "sig": sig.hex()}],
     }
 
 
-def default_trust_store() -> dict[str, Any]:
-    """The trust store used to *verify* attestations offline.
+def sign_demo(statement: dict[str, Any]) -> dict[str, Any]:
+    """Sign with the published demo key. Cannot be production-valid: DEMO_KEY_ID
+    is never a production key, and no other private key exists in the repo."""
+    return sign_ed25519(statement, _DEMO_SEED, DEMO_KEY_ID)
 
-    `production_keys` is empty by design: no production verifier key material
-    lives in this repository, so no envelope produced here can be
-    production-valid. A relying party supplies real production public keys
-    out-of-band via AERS_EXTERNAL_TRUST_STORE (a path OUTSIDE this repo)."""
-    store: dict[str, Any] = {"demo_keys": {DEMO_KEY_ID: _DEMO_KEY.hex()}, "production_keys": {}}
+
+def default_trust_store() -> dict[str, Any]:
+    """Verification trust store. `production_keys`/`isolation_keys` are populated
+    ONLY from AERS_EXTERNAL_TRUST_STORE and ONLY when that path resolves OUTSIDE
+    this repository — a "trusted" file inside a writable repo is not a boundary.
+    With no external store, there are no production keys, so nothing this repo can
+    sign is production-valid."""
+    store: dict[str, Any] = {"demo_keys": {DEMO_KEY_ID: DEMO_PUBLIC_HEX}, "production_keys": {}, "isolation_keys": {}}
     external = os.environ.get("AERS_EXTERNAL_TRUST_STORE")
     if external:
-        path = Path(external)
-        # An external trust store is only meaningful if it lives outside the
-        # writable repository; a "trusted" file inside the repo is not a boundary.
-        if path.exists():
+        path = Path(external).resolve()
+        try:
+            repo = find_repo_root().resolve()
+            inside = str(path).startswith(str(repo) + os.sep)
+        except Exception:
+            inside = False
+        if path.exists() and not inside:
             data = load_json(path)
-            for keyid, keyhex in (data.get("production_keys") or {}).items():
-                store["production_keys"][str(keyid)] = str(keyhex)
+            for group in ("production_keys", "isolation_keys"):
+                for keyid, keyhex in (data.get(group) or {}).items():
+                    store[group][str(keyid)] = str(keyhex)
     return store
 
 
 # ---------------------------------------------------------------------------
-# Immutable candidate handoff.
+# Immutable candidate handoff (unchanged shape; digests bind the attestation).
 # ---------------------------------------------------------------------------
 def _policy_digest(repo: Path, ref: str) -> str:
-    """Digest over the applicable policy files read at an immutable ref. Missing
-    files are recorded as null so adding/removing a policy also changes the
-    digest (substitution and omission are both detected)."""
     materials: dict[str, str | None] = {}
     for rel in POLICY_FILES:
         try:
@@ -124,17 +125,11 @@ def _policy_digest(repo: Path, ref: str) -> str:
 
 def _repo_identity(repo: Path) -> str:
     result = run_git(repo, ["remote", "get-url", "origin"], check=False)
-    url = result.stdout.strip()
-    return url or repo.resolve().name
+    return result.stdout.strip() or repo.resolve().name
 
 
 def build_handoff(repo: Path, feature_id: str, task_id: str, candidate_ref: str,
                   author_report_path: Path, profile: str, contract_ref: str | None = None) -> dict[str, Any]:
-    """Assemble the immutable candidate handoff the author domain sends to the
-    verifier. Contains only digests and identities — never private material.
-
-    Every field a verifier must bind against is present, and `handoff_digest`
-    covers all of them so a single comparison detects any substitution."""
     candidate_sha = rev_parse(repo, candidate_ref)
     contract_sha = rev_parse(repo, contract_ref) if contract_ref else candidate_sha
     feature_path = f".specify/specs/{feature_id}/feature.contract.json"
@@ -160,13 +155,14 @@ def build_handoff(repo: Path, feature_id: str, task_id: str, candidate_ref: str,
 
 
 # ---------------------------------------------------------------------------
-# Attestation (what the external verifier emits). Modeled here with the demo
-# signer so the protocol is testable offline; a production verifier swaps in a
-# real private key held in its own trust domain.
+# Attestation.
 # ---------------------------------------------------------------------------
 def make_attestation(handoff: dict[str, Any], verdict: str, reason_codes: list[str],
                      verifier_identity: str, trust_domain: str = "offline-demo",
-                     ttl_seconds: int = 3600, nonce: str | None = None) -> dict[str, Any]:
+                     ttl_seconds: int = 3600, nonce: str | None = None,
+                     signer_seed: bytes | None = None, keyid: str | None = None) -> dict[str, Any]:
+    """Build and sign an attestation. Defaults to the demo signer. A production
+    verifier passes its own private seed/keyid (held in its trust domain)."""
     if verdict not in VALID_VERDICTS:
         raise ValueError(f"Invalid verifier verdict: {verdict}")
     now = datetime.now(timezone.utc)
@@ -187,9 +183,11 @@ def make_attestation(handoff: dict[str, Any], verdict: str, reason_codes: list[s
             "reason_codes": sorted(set(reason_codes)),
             "timestamp": now.isoformat().replace("+00:00", "Z"),
             "expires_at": (now + timedelta(seconds=ttl_seconds)).isoformat().replace("+00:00", "Z"),
-            "nonce": nonce or hashlib.sha256(canonical_json(handoff).encode() + str(now.timestamp()).encode()).hexdigest()[:16],
+            "nonce": nonce or hashlib.sha256(canonical_json(handoff).encode() + now.isoformat().encode()).hexdigest()[:16],
         },
     }
+    if signer_seed is not None:
+        return sign_ed25519(statement, signer_seed, keyid or "external-production-key")
     return sign_demo(statement)
 
 
@@ -200,46 +198,57 @@ def _now_dt(now_iso: str | None) -> datetime:
 
 
 def verify_attestation(envelope: dict[str, Any], handoff: dict[str, Any],
-                       trust_store: dict[str, Any] | None = None, now_iso: str | None = None) -> dict[str, Any]:
-    """Verify a DSSE attestation against the immutable handoff. Fail-closed.
+                       trust_store: dict[str, Any] | None = None, now_iso: str | None = None,
+                       allow_untrusted_production_roots: bool = False) -> dict[str, Any]:
+    """Verify a DSSE/Ed25519 attestation against the immutable handoff. Fail-closed.
 
-    Detects: result tampering (signature mismatch), candidate/policy/evidence
-    substitution (digest binding mismatch), stale attestations (expiry), and
-    demo-vs-production trust scope. `production_valid` is True ONLY when the
-    signing key is a known production key AND all bindings hold AND the verdict
-    is VERIFIED AND it has not expired."""
-    store = trust_store or default_trust_store()
+    `production_valid` is True ONLY when: the Ed25519 signature verifies under a
+    PRODUCTION public key that came from a trusted (non-caller, out-of-repo)
+    store, AND every digest binding holds, AND it has not expired, AND the verdict
+    is VERIFIED. A caller-supplied trust store is treated as untrusted: its
+    production keys are ignored unless `allow_untrusted_production_roots=True`
+    (explicit test-only escape hatch)."""
+    caller_supplied = trust_store is not None
+    store = trust_store if caller_supplied else default_trust_store()
     reasons: list[str] = []
     result: dict[str, Any] = {"valid": False, "production_valid": False, "verdict": None, "keyid": None,
                               "trust_domain": None, "reasons": reasons}
 
-    # 1. Signature check — decode payload, recompute MAC under the named key.
     try:
         payload = base64.standard_b64decode(envelope["payload"])
         sig_entry = envelope["signatures"][0]
         keyid = sig_entry["keyid"]
-        presented_sig = sig_entry["sig"]
+        presented_sig = bytes.fromhex(sig_entry["sig"])
     except (KeyError, IndexError, ValueError):
         reasons.append("MALFORMED_ENVELOPE")
         return result
     result["keyid"] = keyid
-    all_keys = {**dict(store.get("demo_keys", {})), **dict(store.get("production_keys", {}))}
+
+    demo_keys = dict(store.get("demo_keys", {}))
+    production_keys = dict(store.get("production_keys", {}))
+    all_keys = {**demo_keys, **production_keys}
     key_hex = all_keys.get(keyid)
     if key_hex is None:
         reasons.append("UNKNOWN_SIGNING_KEY")
         return result
-    expected_sig = _mac(bytes.fromhex(key_hex), envelope.get("payloadType", PAYLOAD_TYPE), payload)
-    if not hmac.compare_digest(expected_sig, presented_sig):
-        reasons.append("SIGNATURE_MISMATCH")  # result tampering or wrong key
+
+    if not ed.checkvalid(presented_sig, _pae(envelope.get("payloadType", PAYLOAD_TYPE), payload), bytes.fromhex(key_hex)):
+        reasons.append("SIGNATURE_MISMATCH")
         return result
 
     statement = json.loads(payload)
     predicate = statement.get("predicate", {})
     result["verdict"] = predicate.get("verdict")
     result["trust_domain"] = predicate.get("trust_domain")
-    is_production_key = keyid in store.get("production_keys", {})
 
-    # 2. Binding — the attestation must bind to THIS handoff, digit for digit.
+    # A production key only counts if it was NOT injected by an untrusted caller
+    # (unless the explicit test-only escape hatch is set). This is what makes
+    # local code unable to manufacture production_valid by choosing its own root.
+    key_is_production = keyid in production_keys
+    if key_is_production and caller_supplied and not allow_untrusted_production_roots:
+        reasons.append("UNTRUSTED_CALLER_ROOT")
+        key_is_production = False
+
     bindings = {
         "candidate_digest": handoff["candidate_sha"],
         "policy_digest": handoff["policy_digest"],
@@ -247,27 +256,28 @@ def verify_attestation(envelope: dict[str, Any], handoff: dict[str, Any],
         "handoff_digest": handoff["handoff_digest"],
         "source_tree_digest": handoff["source_tree_digest"],
     }
+    binding_ok = True
     for field, expected in bindings.items():
         if predicate.get(field) != expected:
             reasons.append(f"BINDING_MISMATCH:{field}")
+            binding_ok = False
 
-    # 3. Freshness.
+    fresh = True
     try:
         if _now_dt(now_iso) > datetime.fromisoformat(predicate["expires_at"].replace("Z", "+00:00")):
             reasons.append("ATTESTATION_EXPIRED")
+            fresh = False
     except (KeyError, ValueError):
         reasons.append("MISSING_EXPIRY")
+        fresh = False
 
-    # 4. Verdict.
-    if predicate.get("verdict") != "VERIFIED":
+    verdict_ok = predicate.get("verdict") == "VERIFIED"
+    if not verdict_ok:
         reasons.append(f"VERDICT_{predicate.get('verdict')}")
 
-    signature_ok = not reasons  # bindings/freshness/verdict all clean
-    result["valid"] = signature_ok
-    # Production validity additionally requires a production trust anchor. The
-    # repository has none, so repository-signed attestations are never
-    # production-valid — the core trust invariant.
-    result["production_valid"] = signature_ok and is_production_key
-    if signature_ok and not is_production_key:
+    all_ok = binding_ok and fresh and verdict_ok and "UNTRUSTED_CALLER_ROOT" not in reasons
+    result["valid"] = all_ok
+    result["production_valid"] = all_ok and key_is_production
+    if all_ok and not key_is_production and "UNTRUSTED_CALLER_ROOT" not in reasons:
         reasons.append("DEMO_TRUST_DOMAIN_ONLY")
     return result

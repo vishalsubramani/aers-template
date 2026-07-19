@@ -69,6 +69,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     va = sub.add_parser("verify-attestation", help="verify an attestation against a handoff (fail-closed)")
     va.add_argument("--attestation", required=True); va.add_argument("--handoff", required=True)
+    va.add_argument("--allow-demo", action="store_true",
+                    help="treat a cryptographically valid but DEMO-scoped attestation as success (exit 0). "
+                         "Without it, demo-only evidence exits 3, not 0.")
 
     em = sub.add_parser("evidence-manifest", help="aggregate all author-side assurance evidence")
     em.add_argument("--profile", default="high-assurance", choices=profiles_mod.PROFILE_IDS)
@@ -157,8 +160,16 @@ def main(argv: list[str] | None = None) -> int:
             envelope = load_json(Path(args.attestation))
             handoff = load_json(Path(args.handoff))
             result = verifier_mod.verify_attestation(envelope, handoff)
-            _json(result)
-            return 0 if result["valid"] else 1
+            scope = ("PRODUCTION-VALID" if result["production_valid"]
+                     else "DEMO-ONLY (not production)" if result["valid"] else "INVALID")
+            _json({**result, "trust_scope": scope})
+            # Exit codes: 0 production-valid; 3 cryptographically valid but
+            # DEMO-only (never ordinary success unless --allow-demo); 1 invalid.
+            if result["production_valid"]:
+                return 0
+            if result["valid"]:
+                return 0 if args.allow_demo else 3
+            return 1
 
         if args.command == "evidence-manifest":
             manifest = evidence_mod.build_manifest(repo, args.profile)

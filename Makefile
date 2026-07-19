@@ -38,8 +38,10 @@ evaluator-health:
 baseline:
 	python3 scripts/assure.py baseline
 
+# POST-COMMIT artifact: writes only under the gitignored evidence dir; never
+# commit the manifest into the candidate it describes (that changes the SHA).
 evidence-manifest:
-	python3 scripts/assure.py evidence-manifest --output .aers-evidence/evidence-manifest.json --release-readiness docs/RELEASE-READINESS.md
+	python3 scripts/assure.py evidence-manifest --profile standard --output .aers-evidence/evidence-manifest.json --release-readiness .aers-evidence/RELEASE-READINESS.md
 
 # Aggregate author-side assurance gates. Strengthens verify; weakens nothing.
 assure: benchmark assess assurance threat-model evaluator-health

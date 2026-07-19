@@ -305,7 +305,10 @@ falsifiable and reports honestly. It never issues `VERIFIED`.
   attestation, and verify it fail-closed:
   `python3 scripts/assure.py handoff ...` → `attest-demo` → `verify-attestation`.
   The result is `production_valid: false` — by design, local code cannot mint a
-  production `VERIFIED`.
+  production `VERIFIED` (attestations are Ed25519-signed and the repo holds no
+  production private key). `verify-attestation` exits **3** for a valid but
+  demo-only attestation (0 only with `--allow-demo`), and **0** only for a
+  production-valid one, so CI cannot mistake demo evidence for success.
 - **Migration**: `python3 scripts/assure.py migrate --assess <repo>` prints a
   non-destructive plan and a profile recommendation (`docs/MIGRATION.md`).
 
