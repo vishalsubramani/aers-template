@@ -11,12 +11,14 @@ from typing import Any
 from .util import atomic_write_json, hash_object, load_json, utc_now
 
 
-def propose(repo: Path, statement: str, scope: list[str], provenance: list[str], review_by: str) -> Path:
+def propose(repo: Path, statement: str, scope: list[str], provenance: list[str], review_by: str,
+            links: list[str] | None = None) -> Path:
     if not statement.strip() or not provenance:
         raise ValueError("Memory proposal requires a statement and provenance")
     record_id = f"MEM-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:8]}"
     record: dict[str, Any] = {"schema_version":1,"id":record_id,"status":"quarantine","statement":statement.strip(),
-                              "scope":scope,"provenance":provenance,"review_by":review_by,"validation":[],"conflicts":[]}
+                              "scope":scope,"provenance":provenance,"review_by":review_by,"validation":[],"conflicts":[],
+                              "links":sorted(set(links or []))}
     record["sha256"] = hash_object({k:v for k,v in record.items() if k != "sha256"})
     path = repo / ".agents/memory/quarantine" / f"{record_id}.json"
     atomic_write_json(path, record)

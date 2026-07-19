@@ -34,13 +34,19 @@ def _scrubbed_env(home: Path) -> dict[str, str]:
     return env
 
 
-def author_verify(repo: Path, feature_id: str, task_id: str, base_ref: str, output: Path, degraded: bool = False) -> dict[str, Any]:
+def author_verify(repo: Path, feature_id: str, task_id: str, base_ref: str, output: Path, degraded: bool = False,
+                  contract_ref: str | None = None) -> dict[str, Any]:
+    # base_ref is the commit this task's diff is judged against — the contract
+    # commit for independent tasks, or the integration start (dependency
+    # candidates merged) for stacked tasks. contract_ref is where the immutable
+    # contracts are read; it defaults to base_ref for the independent case.
     base_sha = rev_parse(repo, base_ref)
+    contract_sha = rev_parse(repo, contract_ref) if contract_ref else base_sha
     candidate_sha = head_sha(repo)
-    bundle = load_bundle(repo, feature_id, task_id, ref=base_sha)
-    scope = evaluate_scope(repo, feature_id, task_id, base_sha, contract_ref=base_sha)
+    bundle = load_bundle(repo, feature_id, task_id, ref=contract_sha)
+    scope = evaluate_scope(repo, feature_id, task_id, base_sha, contract_ref=contract_sha)
     integrity: dict[str, Any] = {"clean_candidate":is_clean(repo),"scope_passed":scope.passed,"network_mode":None,
-                                 "clean_export":False,"contract_ref":base_sha,"contract_hashes":scope.contract_hashes}
+                                 "clean_export":False,"contract_ref":contract_sha,"contract_hashes":scope.contract_hashes}
     commands: list[dict[str, Any]] = []
     fatal: list[str] = []
     if not integrity["clean_candidate"]:
@@ -125,7 +131,7 @@ def author_verify(repo: Path, feature_id: str, task_id: str, base_ref: str, outp
         verdict = "DEGRADED" if degraded and all(c.get("status") in {"pass"} for c in commands) and scope.passed and integrity["clean_candidate"] else "AUTHOR_FAILED"
     else:
         verdict = "AUTHOR_READY"
-    report = {"schema_version":1,"generated_at":utc_now(),"verdict":verdict,"base_sha":base_sha,"candidate_sha":candidate_sha,
+    report = {"schema_version":1,"generated_at":utc_now(),"verdict":verdict,"base_sha":base_sha,"contract_sha":contract_sha,"candidate_sha":candidate_sha,
               "feature_id":feature_id,"task_id":task_id,"integrity":integrity,"scope":scope.to_dict(),"commands":commands,
               "fatal_reasons":fatal,"statement":"This author-side report cannot issue VERIFIED."}
     report["report_hash"] = hash_object(report)

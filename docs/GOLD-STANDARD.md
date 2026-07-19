@@ -334,14 +334,20 @@ or verification authority.
 1. Resolve and hash the approved contract commit.
 2. Register immutable definitions in the external ledger.
 3. Confirm dependencies, risk tier, capability policy, and budget.
-4. Create an isolated worktree/branch.
-5. Generate a context packet.
+4. Create an isolated worktree/branch and merge dependency candidates onto the
+   contract commit (the integration start; a conflict safe-stops as a
+   write-scope planning defect).
+5. Generate a context packet, including curated lessons recalled by scope
+   association from active memory.
 6. Launch the author in a fresh process with no shell-generated command string.
-7. Evaluate exact changed paths, tests, protected surfaces, symlinks, and diff budgets.
-8. Stage only approved paths and create the candidate commit itself.
-9. Run clean-export author verification.
+7. Evaluate exact changed paths, tests, protected surfaces, symlinks, and diff
+   budgets against the integration start.
+8. Stage only approved paths and create the candidate commit itself, with
+   run/contract/start provenance trailers.
+9. Run clean-export author verification at the integrated state.
 10. Run deterministic trajectory/diff audit.
-11. Obtain a schema-valid independent reviewer report.
+11. Obtain a schema-valid independent reviewer report (two for R2 when
+    configured).
 12. Mark the candidate `AUTHOR_READY` and stop.
 
 The default loop never pushes, merges, releases, or invokes private tests.
@@ -411,7 +417,9 @@ The author verifier:
 
 1. Resolves base and candidate commit SHAs or stops.
 2. Requires a clean candidate worktree.
-3. Loads feature/task contracts from the immutable base commit.
+3. Loads feature/task contracts from the immutable contract commit (which
+   equals the diff base only for tasks without dependencies; stacked tasks
+   diff against their integration start while contracts stay pinned).
 4. Re-runs the exact scope gate.
 5. Exports the candidate through `git archive` into a clean temporary directory.
 6. Rejects unsafe archive paths/symlinks.

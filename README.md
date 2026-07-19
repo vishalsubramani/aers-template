@@ -49,7 +49,8 @@ reports anything it skipped, and prints the same three next steps: fill
 
 ```text
 MISSION.md  →  /kickoff  →  approved feature packs (.specify/specs/)
-            →  per task: fresh agent in a clean worktree
+            →  per task: fresh agent in a clean worktree, stacked on
+               dependency candidates (integration-true verification)
             →  SCOPE GATE (exact diff vs immutable write scope)
             →  candidate commit (orchestrator stages approved paths only)
             →  hermetic AUTHOR VERIFY (+ differential test gate)
@@ -91,8 +92,11 @@ instead of lowering a gate to finish.
 - **Fresh-context task loop** — one task per fresh process
   (`scripts/loop.py`), an outer runner for a whole feature's task graph
   (`scripts/run_ready.py`), failed-attempt rollback with preserved patches
-- **Curated memory** — quarantined proposals, human-controlled promotion;
-  agent output never silently becomes durable instruction
+- **Curated memory with a closed learning loop** — quarantined proposals,
+  human-controlled promotion, and deterministic associative recall: promoted
+  lessons flow back into every context packet whose task scope intersects the
+  lesson's scope (plus linked lessons one hop away); agent output never
+  silently becomes durable instruction
 - **Guardrail hooks** — Claude Code hooks deny protected-path writes and
   config drift early (defense in depth; the gates are the boundary)
 - **Public adversarial evals** — smoke cases that prove the gates actually

@@ -45,10 +45,14 @@ def _read_trajectory(path: Path | None) -> tuple[list[dict[str, Any]], list[dict
     return events, findings
 
 
-def audit_candidate(repo: Path, feature_id: str, task_id: str, base_ref: str, run_id: str, trajectory: Path | None, output: Path) -> dict[str, Any]:
+def audit_candidate(repo: Path, feature_id: str, task_id: str, base_ref: str, run_id: str, trajectory: Path | None, output: Path,
+                    contract_ref: str | None = None) -> dict[str, Any]:
+    # base_ref: diff base (integration start for stacked tasks); contract_ref:
+    # where immutable contracts are read (defaults to base_ref).
     base_sha = rev_parse(repo, base_ref)
+    contract_sha = rev_parse(repo, contract_ref) if contract_ref else base_sha
     candidate_sha = head_sha(repo)
-    scope = evaluate_scope(repo, feature_id, task_id, base_sha, contract_ref=base_sha)
+    scope = evaluate_scope(repo, feature_id, task_id, base_sha, contract_ref=contract_sha)
     findings: list[dict[str, str]] = list(scope.findings)
     diff = diff_text(repo, base_sha)
     for code, pattern, severity in TAMPERING_PATTERNS:

@@ -72,7 +72,8 @@ def pre_tool_guard(payload: dict[str, Any]) -> int:
             return _deny(f"Protected path: {rel}")
         if feature_id and task_id and base:
             try:
-                bundle = load_bundle(cfg.repo, feature_id, task_id, ref=base)
+                contract_ref = os.environ.get("AERS_CONTRACT_SHA") or base
+                bundle = load_bundle(cfg.repo, feature_id, task_id, ref=contract_ref)
                 if not matches(rel, bundle.task["write_scope"]):
                     return _deny(f"Outside immutable task write scope: {rel}")
                 if bundle.task["role"] == "implementer" and "test" in classify_path(rel, policy):
@@ -90,7 +91,9 @@ def task_completed_gate() -> int:
     feature_id, task_id, base = os.environ.get("AERS_FEATURE_ID"), os.environ.get("AERS_TASK_ID"), os.environ.get("AERS_BASE_SHA")
     if not all([feature_id,task_id,base]):
         return _deny("TaskCompleted missing immutable AERS task identity")
-    proc = subprocess.run([sys.executable,"scripts/aers.py","scope-check","--feature",feature_id,"--task",task_id,"--base",base], text=True)
+    contract_ref = os.environ.get("AERS_CONTRACT_SHA") or base
+    proc = subprocess.run([sys.executable,"scripts/aers.py","scope-check","--feature",feature_id,"--task",task_id,
+                           "--base",base,"--contract-ref",contract_ref], text=True)
     if proc.returncode != 0:
         return _deny("Scope gate failed; task completion blocked")
     print(json.dumps({"decision":"allow","reason":"Early scope gate passed; external author verification still required"}))

@@ -88,6 +88,9 @@ def lint_repo(repo: Path) -> dict[str, Any]:
         record = load_json(path)
         if record.get("sha256") != item.get("sha256"):
             findings.append({"severity":"error","code":"MEMORY_HASH_MISMATCH","message":item["path"]})
+        from .util import hash_object
+        if hash_object({k: v for k, v in record.items() if k != "sha256"}) != record.get("sha256"):
+            findings.append({"severity":"error","code":"MEMORY_CONTENT_TAMPERED","message":item["path"]})
         try:
             if datetime.fromisoformat(record["review_by"].replace("Z", "+00:00")).date() < today:
                 findings.append({"severity":"error","code":"MEMORY_EXPIRED","message":item["path"]})

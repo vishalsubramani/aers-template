@@ -16,6 +16,10 @@ require_clean_candidate = true
 require_network_isolation = true
 local_verdict = "AUTHOR_READY"
 trusted_verdict = "VERIFIED"
+# When true, R2 tasks refuse to reach AUTHOR_READY without a second,
+# independent reviewer (AERS_SECOND_REVIEWER_CMD_JSON — use a different
+# model/harness than the first reviewer).
+require_second_reviewer_r2 = false
 
 [security]
 rule_of_two = true
