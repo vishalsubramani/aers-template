@@ -53,12 +53,14 @@ def lint_repo(repo: Path) -> dict[str, Any]:
         if "<<PLACEHOLDER" in text:
             findings.append({"severity":"error","code":"UNRESOLVED_PLACEHOLDER","message":str(path.relative_to(repo))})
 
-    # Load-bearing docs must not reference repo files that do not exist —
-    # mechanical guard against doc/code drift. Conservative: inline-code refs
-    # only (fenced blocks skipped), known top-level dirs only, placeholders and
-    # example/future IDs (FEAT-*, ADR-0001+, runtime artifacts) skipped.
-    doc_files = ["README.md", "TUTORIAL.md", "AGENTS.md", "CLAUDE.md", "GEMINI.md", "MISSION.md",
-                 "CONTRIBUTING.md", ".agents/README.md", ".agents/memory/README.md"]
+    # AERS-authored reference docs must not reference repo files that do not
+    # exist — mechanical guard against doc/code drift. Conservative: inline-code
+    # refs only (fenced blocks skipped), known top-level dirs only, placeholders
+    # and example/future IDs (FEAT-*, ADR-0001+, runtime artifacts) skipped.
+    # Adopter-owned docs (README, AGENTS, CLAUDE, GEMINI, MISSION, CONTRIBUTING)
+    # are deliberately EXCLUDED — adopters edit them to reference their own,
+    # not-yet-created files, and must not be failed for it.
+    doc_files = ["TUTORIAL.md", ".agents/README.md", ".agents/memory/README.md", "docs/GOLD-STANDARD.md"]
     doc_files += sorted(str(p.relative_to(repo)) for p in (repo / ".agents/doctrine").glob("*.md") if p.is_file())
     doc_files += sorted(str(p.relative_to(repo)) for p in (repo / "agent_docs").glob("*.md") if p.is_file())
     known_dirs = {"scripts", ".agents", ".specify", ".claude", ".github", "docs", "evals", "examples", "agent_docs", "tests", "memory"}

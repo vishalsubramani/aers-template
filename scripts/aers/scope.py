@@ -7,9 +7,24 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any
 
+import json
+
 from .contracts import ContractBundle, load_bundle
-from .git import changed_paths, diff_numstat, rev_parse
+from .git import changed_paths, diff_numstat, read_file_at_ref, rev_parse
 from .util import load_json
+
+POLICY_PATH = ".agents/policies/protected-paths.json"
+
+
+def load_protected_policy(repo: Path, contract_ref: str) -> dict[str, Any]:
+    """Read the protected-paths classification policy from the IMMUTABLE contract
+    ref, never the working tree. Otherwise a single candidate could weaken the
+    policy and write a protected path in the same diff, defeating the gate. Falls
+    back to the working tree only when the ref has no policy yet (pre-adoption)."""
+    try:
+        return json.loads(read_file_at_ref(repo, contract_ref, POLICY_PATH).decode("utf-8"))
+    except ValueError:
+        return load_json(repo / POLICY_PATH)
 
 
 @dataclass
@@ -70,12 +85,13 @@ def _symlink_escape(repo: Path, relpath: str) -> str | None:
 
 def evaluate_scope(repo: Path, feature_id: str, task_id: str, base_ref: str, contract_ref: str | None = None) -> ScopeReport:
     base_sha = rev_parse(repo, base_ref)
-    bundle: ContractBundle = load_bundle(repo, feature_id, task_id, ref=contract_ref or base_sha)
+    contract_sha = rev_parse(repo, contract_ref) if contract_ref else base_sha
+    bundle: ContractBundle = load_bundle(repo, feature_id, task_id, ref=contract_sha)
     task = bundle.task
     role = task["role"]
     changed = changed_paths(repo, base_sha)
     total_lines, _ = diff_numstat(repo, base_sha)
-    policy = load_json(repo / ".agents/policies/protected-paths.json")
+    policy = load_protected_policy(repo, contract_sha)
     findings: list[ScopeFinding] = []
 
     if len(changed) > task["budget"]["max_files"]:

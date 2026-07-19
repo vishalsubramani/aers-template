@@ -64,4 +64,15 @@ class LedgerTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"reason"):l.requeue("FEAT-X","T-001","  ")
             with self.assertRaisesRegex(ValueError,"No prior run"):l.requeue("FEAT-X","T-001","stale")
 
+    def test_force_reclaims_orphaned_in_flight_task(self):
+        with tempfile.TemporaryDirectory() as td:
+            l=Ledger(Path(td)/"ledger.db");l.register(self.feature(),self.tasks(),"a"*40)
+            run=l.start_run("FEAT-X","T-001","owner")
+            l.transition("FEAT-X","T-001","implementing",run)  # process now "dies" here
+            # Without force, implementing -> pending is not a legal transition.
+            with self.assertRaises(ValueError):l.requeue("FEAT-X","T-001","stuck")
+            l.requeue("FEAT-X","T-001","orphaned by crash",force=True)
+            self.assertEqual(l.task("FEAT-X","T-001")["status"],"pending")
+            self.assertTrue(l.verify_chain(run))  # forced reset is journaled, chain intact
+
 if __name__ == "__main__":unittest.main()

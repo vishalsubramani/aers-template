@@ -12,7 +12,7 @@ from typing import Any
 
 from .contracts import load_bundle
 from .git import export_commit, head_sha, is_clean, rev_parse
-from .scope import classify_path, evaluate_scope
+from .scope import classify_path, evaluate_scope, load_protected_policy
 from .util import atomic_write_json, hash_object, load_json, redact, sha256_bytes, utc_now
 
 
@@ -89,7 +89,7 @@ def author_verify(repo: Path, feature_id: str, task_id: str, base_ref: str, outp
     differential: list[dict[str, Any]] = []
     task_diff = bundle.task.get("differential")
     if task_diff and not fatal:
-        policy = load_json(repo / ".agents/policies/protected-paths.json")
+        policy = load_protected_policy(repo, contract_sha)  # immutable ref, not working tree
         test_paths = [p for p in scope.changed_paths if "test" in classify_path(p, policy)]
         if test_paths:
             with tempfile.TemporaryDirectory(prefix="aers-diffbase-") as base_temp:

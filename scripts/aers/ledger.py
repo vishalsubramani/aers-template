@@ -226,6 +226,7 @@ class Ledger:
             for task in view["tasks"]:
                 if task["status"] not in {"author_ready", "verified"}:
                     continue
+                requeuable = task["status"] == "author_ready"
                 rows = conn.execute(
                     "SELECT e.payload_json FROM events e JOIN runs r ON e.run_id=r.run_id "
                     "WHERE r.feature_id=? AND r.task_id=? AND e.event_type='state_transition' "
@@ -237,22 +238,44 @@ class Ledger:
                     for entry in payload.get("integrated", []):
                         dep, sha = entry.split(":", 1)
                         if candidates.get(dep) != sha:
-                            stale.append({"task_id": task["task_id"], "dependency": dep,
-                                          "integrated_candidate": sha, "current_candidate": candidates.get(dep)})
+                            stale.append({"task_id": task["task_id"], "status": task["status"],
+                                          "dependency": dep, "integrated_candidate": sha,
+                                          "current_candidate": candidates.get(dep),
+                                          "remediation": "requeue" if requeuable else "external_reverify"})
                     break
         return stale
 
-    def requeue(self, feature_id: str, task_id: str, reason: str) -> None:
-        """Explicit human re-queue of a finished-but-stale (or withdrawn)
-        candidate: author_ready -> pending with the reason on the event chain,
-        clearing the candidate binding. Runners never call this."""
+    INTERMEDIATE_STATES = {"leased", "implementing", "scope_passed", "candidate_committed",
+                           "author_verifying", "auditing", "reviewing"}
+
+    def requeue(self, feature_id: str, task_id: str, reason: str, force: bool = False) -> None:
+        """Explicit human re-queue back to `pending`, clearing the candidate
+        binding. Two cases, both recorded on the event chain, never called by a
+        runner:
+        - a finished-but-stale/withdrawn candidate (author_ready -> pending), or
+        - `force=True`, an orphaned in-flight task whose process died
+          (SIGKILL/crash) and left it stuck in an intermediate state with no
+          process to fail it. Force bypasses the normal transition table but is
+          still journaled with the human reason.
+        """
         if not reason.strip():
             raise ValueError("Requeue requires a human-stated reason")
         with self.connect() as conn:
             row = conn.execute("SELECT run_id FROM runs WHERE feature_id=? AND task_id=? ORDER BY started_at DESC LIMIT 1",
                                (feature_id, task_id)).fetchone()
-        if not row:
+            status_row = conn.execute("SELECT status FROM tasks WHERE feature_id=? AND task_id=?", (feature_id, task_id)).fetchone()
+        if not row or not status_row:
             raise ValueError("No prior run recorded; nothing to requeue")
+        current = status_row["status"]
+        if force and current in self.INTERMEDIATE_STATES:
+            # Journaled human override for an orphaned run — the only path that
+            # bypasses ALLOWED_TASK_TRANSITIONS, and only from an intermediate state.
+            with self.connect() as conn:
+                conn.execute("UPDATE tasks SET status='pending', candidate_sha=NULL, lease_owner=NULL WHERE feature_id=? AND task_id=?",
+                             (feature_id, task_id))
+            self.append_event(row["run_id"], "state_transition",
+                              {"from": current, "to": "pending", "requeue": True, "forced": True, "reason": reason.strip()})
+            return
         self.transition(feature_id, task_id, "pending", row["run_id"], {"requeue": True, "reason": reason.strip()})
         with self.connect() as conn:
             conn.execute("UPDATE tasks SET candidate_sha=NULL, lease_owner=NULL WHERE feature_id=? AND task_id=?",

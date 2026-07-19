@@ -4,6 +4,12 @@ Vendor-neutral procedure for bootstrapping autonomous engineering in this
 repository. Claude Code exposes it as `/kickoff`; any other agent (Codex,
 Gemini, Copilot, a human) follows it verbatim.
 
+0. **Interview the human before drafting anything.** Ambiguity is cheapest to
+   resolve at the source. Ask the clarifying questions whose answers would
+   change the design — scale, the two or three dominant quality attributes,
+   hard constraints, explicit non-goals, what "done" looks like — and wait for
+   answers before writing specs. A spec built on unstated assumptions is
+   rework; a question is not.
 1. Read `MISSION.md`, `AGENTS.md`, `.agents/constitution.md`, and
    `.agents/doctrine/`. If
    `MISSION.md` still contains its `<!-- PLACEHOLDER` marker, stop and ask the

@@ -321,6 +321,17 @@ def main(argv=None) -> int:
         atomic_write_json(evidence/"summary.json",summary);print(json.dumps(summary,indent=2));return 0
     except Exception as exc:
         fingerprint=hash_object({"type":type(exc).__name__,"message":str(exc)})
+        # If the task already reached author_ready before this exception (e.g. a
+        # post-review failure), the candidate branch/worktree are a human's to
+        # keep — never roll them back or mark the run failed.
+        try:
+            reached_ready=ledger.task(args.feature,args.task)["status"]=="author_ready"
+        except Exception:
+            reached_ready=False
+        if reached_ready:
+            atomic_write_json(evidence/"post-ready-error.json",{"run_id":run_id,"error":type(exc).__name__,"message":str(exc)})
+            print(f"WARNING: task already author_ready; error after finalization preserved, not rolled back: {exc}",file=sys.stderr)
+            return 2
         try:
             if worktree.exists():
                 atomic_write_text(evidence/"failed-attempt.patch", diff_text(worktree, start_sha))

@@ -49,9 +49,10 @@ arrays.
 
 **Step 4 — Author your first feature pack.** (First time only: draft and get
 approval on the foundation ADRs — ADR-0001 architecture baseline, ADR-0002
-data baseline — from `docs/adr/ADR-0000-template.md` per `agent_docs/kickoff.md`
-step 3. `/kickoff` does this automatically; on this manual path, do it by hand.
-Every plan cites them, so they must exist before feature work.)
+data baseline, ADR-0003 security baseline — from `docs/adr/ADR-0000-template.md`
+per `agent_docs/kickoff.md` step 3. `/kickoff` does this automatically; on this
+manual path, do it by hand. Every plan cites them, so they must exist before
+feature work.)
 
 ```bash
 python3 scripts/aers.py init-feature FEAT-101 --title "Your feature" --mode S1 --risk R1

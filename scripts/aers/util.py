@@ -13,8 +13,15 @@ from typing import Any
 SECRET_PATTERNS = [
     re.compile(r"gh[pousr]_[A-Za-z0-9_]{20,}"),
     re.compile(r"AKIA[0-9A-Z]{16}"),
-    re.compile(r"(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*['\"][^'\"]{8,}['\"]"),
-    re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
+    re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"),                       # Slack tokens
+    re.compile(r"sk-[A-Za-z0-9_-]{16,}"),                             # OpenAI-style keys
+    re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"),  # JWTs
+    re.compile(r"(?i)\b(?:bearer|authorization)\b\s*[:=]?\s*[A-Za-z0-9._~+/-]{16,}"),
+    re.compile(r"(?i)\baws[_-]?secret[_-]?access[_-]?key\b\s*[:=]\s*\S{16,}"),
+    # quoted OR unquoted key=value / key: value secrets
+    re.compile(r"(?i)(api[_-]?key|token|secret|password|passwd|pwd|access[_-]?key|client[_-]?secret)\s*[:=]\s*['\"][^'\"]{6,}['\"]"),
+    re.compile(r"(?i)(api[_-]?key|token|secret|password|passwd|pwd|access[_-]?key|client[_-]?secret)\s*[:=]\s*(?!['\"])\S{8,}"),
+    re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"),
 ]
 
 

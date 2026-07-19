@@ -84,11 +84,16 @@ def main(argv=None) -> int:
     view = ledger.view(args.feature)
     stale = ledger.stale_stacks(args.feature)
     for item in stale:
-        print(f"STALE STACK: {item['task_id']} was verified against {item['dependency']}@"
-              f"{(item['integrated_candidate'] or '')[:12]} but that dependency's candidate is now "
-              f"{(item['current_candidate'] or 'gone')[:12]} — requeue before external verification: "
-              f"python3 scripts/aers.py requeue --feature {args.feature} --task {item['task_id']} --reason 'stale stack'",
-              file=sys.stderr)
+        head = (f"STALE STACK: {item['task_id']} was built against {item['dependency']}@"
+                f"{(item['integrated_candidate'] or '')[:12]} but that dependency's candidate is now "
+                f"{(item['current_candidate'] or 'gone')[:12]}")
+        if item["remediation"] == "requeue":
+            print(f"{head} — requeue before external verification: python3 scripts/aers.py requeue "
+                  f"--feature {args.feature} --task {item['task_id']} --reason 'stale stack'", file=sys.stderr)
+        else:
+            print(f"{head} — this task is already {item['status']}; its external attestation no longer "
+                  f"reflects its dependencies and must be re-verified externally (requeue cannot rewind a "
+                  f"verified task).", file=sys.stderr)
     summary = {"feature_id": args.feature, "runs": results,
                "tasks": [{"task_id": t["task_id"], "status": t["status"], "attempts": t["attempts"],
                           "candidate_sha": t["candidate_sha"]} for t in view["tasks"]],
