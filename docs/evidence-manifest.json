@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-19T21:26:45.519470Z",
-  "candidate_sha": "f31a96f617b985c24fbd9981aa1c8aba600b615e",
-  "clean_worktree": false,
+  "generated_at": "2026-07-19T21:31:03.713190Z",
+  "candidate_sha": "f5dbf41525acfa0ee60917ae150a1e446a390fb6",
+  "clean_worktree": true,
   "requested_profile": "high-assurance",
   "gates": {
     "assessment": {
@@ -22,8 +22,8 @@
       "passed": true,
       "claims": 11,
       "broken": 0,
-      "stale": 0,
-      "digest": "9c0df820ee7ebea2e79d0aecd0cdfba9df7e5d126be281e6d64e1bcc4365b1ef"
+      "stale": 1,
+      "digest": "dddc6954551f2c01b13ae53123e288a612432b7889e4f37deddb27233c901d02"
     },
     "threat_model": {
       "passed": true,
@@ -39,5 +39,5 @@
   "author_side_all_green": true,
   "verified": false,
   "statement": "This is AUTHOR-side evidence only. VERIFIED can only be issued by a separate, protected verification trust domain that re-runs these gates and binds this manifest's digests.",
-  "manifest_digest": "055a684eee8c8307d9342894e5be2b41059899a7cdf6c0d53b94bed5885d0af8"
+  "manifest_digest": "b0f0cfef40ee4dc5a8322dab7a7c9782b990d861bd86e218ee402289c7f012d6"
 }

@@ -1,14 +1,14 @@
 # AERS Release-Readiness Report
 
-Candidate: `f31a96f617b985c24fbd9981aa1c8aba600b615e`   clean worktree: False
-Generated: 2026-07-19T21:26:45.519470Z
-Manifest digest: `055a684eee8c8307d9342894e5be2b41059899a7cdf6c0d53b94bed5885d0af8`
+Candidate: `f5dbf41525acfa0ee60917ae150a1e446a390fb6`   clean worktree: True
+Generated: 2026-07-19T21:31:03.713190Z
+Manifest digest: `b0f0cfef40ee4dc5a8322dab7a7c9782b990d861bd86e218ee402289c7f012d6`
 
 | Gate | Result | Detail |
 |------|--------|--------|
 | Compliance (high-assurance) | PARTIAL | 18/22 required controls |
 | Adversarial benchmark | PASS | 35/35 contained |
-| Assurance case | PASS | 11 claims, 0 broken, 0 stale |
+| Assurance case | PASS | 11 claims, 0 broken, 1 stale |
 | Threat model | PASS | 12 threats mapped |
 | Evaluator health | PASS | detection 1.00 |
 
