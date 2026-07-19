@@ -1,0 +1,22 @@
+# Replace these placeholders with real teams.
+/MISSION.md                             @org/product @org/architecture
+/AGENTS.md                              @org/agent-platform
+/CLAUDE.md                              @org/agent-platform
+/GEMINI.md                              @org/agent-platform
+/.agents/                               @org/agent-platform @org/security
+/.specify/constitution.md               @org/architecture @org/security
+/.specify/templates/                    @org/agent-platform
+/.claude/hooks/                         @org/agent-platform @org/security
+/.claude/settings.json                  @org/agent-platform @org/security
+/.claude/commands/                      @org/agent-platform
+/.claude/agents/                        @org/agent-platform @org/security
+/.github/workflows/                     @org/platform-engineering @org/security
+/scripts/aers/                          @org/agent-platform @org/security
+/scripts/aers.py                        @org/agent-platform @org/security
+/scripts/loop.py                        @org/agent-platform @org/security
+/scripts/run_ready.py                   @org/agent-platform @org/security
+/aers.toml                              @org/agent-platform @org/security
+/evals/                                 @org/agent-platform @org/security
+/SECURITY.md                            @org/security
+/CODEOWNERS                             @org/security
+/docs/adr/                              @org/architecture

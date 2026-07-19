@@ -1,0 +1,36 @@
+name: AERS control-plane checks
+on:
+  pull_request:
+    paths:
+      - 'MISSION.md'
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - 'GEMINI.md'
+      - 'aers.toml'
+      - 'CODEOWNERS'
+      - 'SECURITY.md'
+      - '.agents/**'
+      - '.specify/constitution.md'
+      - '.specify/templates/**'
+      - '.claude/hooks/**'
+      - '.claude/settings.json'
+      - '.claude/commands/**'
+      - '.claude/agents/**'
+      - 'scripts/aers/**'
+      - 'scripts/aers.py'
+      - 'scripts/loop.py'
+      - 'scripts/run_ready.py'
+      - 'evals/**'
+      - '.github/workflows/**'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # Pin to an immutable SHA in production.
+      - uses: actions/setup-python@v5 # Pin to an immutable SHA in production.
+        with: {python-version: '3.11'}
+      - run: python3 scripts/aers.py lint
+      - run: python3 scripts/aers.py eval-public
+      - run: python3 -m unittest discover -s tests -p 'test_*.py'

@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "public_cases": "evals/public-cases.jsonl",
+  "private_interface": "evals/private-eval-contract.json",
+  "minimum_public_pass_rate": 1.0,
+  "multi_trial_recommended": true
+}

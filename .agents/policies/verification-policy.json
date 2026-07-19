@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "author_verdict": "AUTHOR_READY",
+  "trusted_verdict": "VERIFIED",
+  "local_verified_forbidden": true,
+  "requirements": [
+    "exact_candidate_sha",
+    "clean_export",
+    "immutable_contract_hashes",
+    "scope_pass",
+    "protected_path_pass",
+    "network_isolation",
+    "environment_scrub",
+    "deterministic_audit",
+    "evidence_hashes"
+  ],
+  "external_only": [
+    "private_tests",
+    "signing_identity",
+    "verified_attestation",
+    "release_credentials"
+  ],
+  "degraded_mode_may_verify": false
+}

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "input": [
+    "candidate_sha",
+    "source_archive_digest",
+    "feature_contract_digest",
+    "task_contract_digest",
+    "author_report_digest"
+  ],
+  "required_controls": [
+    "no_author_write_access",
+    "private_tests_not_exposed",
+    "network_deny",
+    "minimal_environment",
+    "immutable_runner",
+    "one_way_bounded_results",
+    "signed_attestation"
+  ],
+  "output": {
+    "verdict": [
+      "VERIFIED",
+      "REJECTED"
+    ],
+    "fields": [
+      "candidate_sha",
+      "source_digest",
+      "policy_digest",
+      "test_summary",
+      "attestation_identity",
+      "timestamp",
+      "signature"
+    ]
+  }
+}

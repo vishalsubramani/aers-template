@@ -1,0 +1,41 @@
+diff --git a/tests/test_priority.py b/tests/test_priority.py
+new file mode 100644
+index 0000000..eb9a1f3
+--- /dev/null
++++ b/tests/test_priority.py
+@@ -0,0 +1,35 @@
++import sys
++import unittest
++from pathlib import Path
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
++
++from todo import TodoList
++
++
++class TestPriority(unittest.TestCase):
++    def test_default_and_explicit_priority_stored(self):  # AC-001
++        todos = TodoList()
++        todos.add("plain")
++        todos.add("urgent", priority="high")
++        stored = {i["title"]: i["priority"] for i in todos.items()}
++        self.assertEqual(stored["plain"], "normal")
++        self.assertEqual(stored["urgent"], "high")
++
++    def test_items_sorted_by_priority_then_insertion(self):  # AC-002
++        todos = TodoList()
++        todos.add("n1")
++        todos.add("l1", priority="low")
++        todos.add("h1", priority="high")
++        todos.add("n2", priority="normal")
++        self.assertEqual([i["title"] for i in todos.items()], ["h1", "n1", "n2", "l1"])
++
++    def test_invalid_priority_rejected_and_not_stored(self):  # AC-003
++        todos = TodoList()
++        with self.assertRaises(ValueError):
++            todos.add("bad", priority="urgent")
++        self.assertEqual(todos.items(), [])
++
++
++if __name__ == "__main__":
++    unittest.main()

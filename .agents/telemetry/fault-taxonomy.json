@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "categories": [
+    "specification_gap",
+    "context_failure",
+    "coordination_failure",
+    "scope_violation",
+    "test_tampering",
+    "oracle_leakage",
+    "retrieval_shortcut",
+    "hardcoded_expectation",
+    "policy_evasion",
+    "network_violation",
+    "secret_exposure",
+    "verification_false_pass",
+    "verification_false_reject",
+    "compositional_failure",
+    "rollback_failure",
+    "nondeterminism",
+    "budget_exhaustion"
+  ]
+}

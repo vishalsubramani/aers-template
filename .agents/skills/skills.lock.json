@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "skills": [
+    {
+      "name": "context-bootstrap",
+      "version": "1.0.0",
+      "path": ".agents/skills/context-bootstrap/SKILL.md",
+      "sha256": "0adaed3800d4c16619f7109a16abc8f4b5d94feca40273b15b49a557f80b60fe",
+      "capabilities": [
+        "repository_context"
+      ],
+      "network": "deny",
+      "status": "approved",
+      "approver": "REPLACE_WITH_CURATOR"
+    },
+    {
+      "name": "specification",
+      "version": "1.0.0",
+      "path": ".agents/skills/specification/SKILL.md",
+      "sha256": "9393f1ed26f40204a74b2c70e67baa7dbf6aab3b0293994172c2b81c0e3f55b7",
+      "capabilities": [
+        "repository_context"
+      ],
+      "network": "deny",
+      "status": "approved",
+      "approver": "REPLACE_WITH_CURATOR"
+    },
+    {
+      "name": "systematic-debugging",
+      "version": "1.0.0",
+      "path": ".agents/skills/systematic-debugging/SKILL.md",
+      "sha256": "314a257086bc9bf8d9e7785f4f02fa938a97e419d705ad4f006df2d6dc36277d",
+      "capabilities": [
+        "repository_context"
+      ],
+      "network": "deny",
+      "status": "approved",
+      "approver": "REPLACE_WITH_CURATOR"
+    },
+    {
+      "name": "verification",
+      "version": "1.0.0",
+      "path": ".agents/skills/verification/SKILL.md",
+      "sha256": "42af3a6ee80b5944f862cce76f7d7c906ced2c72f22e2f309ce653756eea2231",
+      "capabilities": [
+        "repository_context"
+      ],
+      "network": "deny",
+      "status": "approved",
+      "approver": "REPLACE_WITH_CURATOR"
+    },
+    {
+      "name": "adversarial-review",
+      "version": "1.0.0",
+      "path": ".agents/skills/adversarial-review/SKILL.md",
+      "sha256": "fb3e6240c15fb8a2abedd83f9742d6d76f68d5b3d32784bd9b242a1ae191441b",
+      "capabilities": [
+        "repository_context"
+      ],
+      "network": "deny",
+      "status": "approved",
+      "approver": "REPLACE_WITH_CURATOR"
+    },
+    {
+      "name": "post-run-learning",
+      "version": "1.0.0",
+      "path": ".agents/skills/post-run-learning/SKILL.md",
+      "sha256": "7e56c138065c2bc09d974f817b76efa70e1a3012f4b85af24f27646c4c58dbca",
+      "capabilities": [
+        "repository_context"
+      ],
+      "network": "deny",
+      "status": "approved",
+      "approver": "REPLACE_WITH_CURATOR"
+    }
+  ]
+}

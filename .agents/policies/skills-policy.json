@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "default": "deny_unlocked",
+  "activation_requires": [
+    "source",
+    "version",
+    "sha256",
+    "capabilities",
+    "tool_requirements",
+    "network_requirements",
+    "eval_coverage",
+    "approver"
+  ],
+  "same_run_activation": false,
+  "third_party_skills_are_dependencies": true
+}

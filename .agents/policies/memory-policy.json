@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "auto_load_status": [
+    "active"
+  ],
+  "states": [
+    "proposal",
+    "quarantine",
+    "validated",
+    "active",
+    "expired",
+    "revoked"
+  ],
+  "promotion_requires": [
+    "provenance",
+    "content_hash",
+    "scope",
+    "independent_reproduction",
+    "regression_eval",
+    "curator_identity",
+    "review_or_expiry_date"
+  ],
+  "same_run_activation": false,
+  "proposer_may_approve": false,
+  "minimum_distinct_runs": 2,
+  "most_tasks_should_write_memory": false
+}

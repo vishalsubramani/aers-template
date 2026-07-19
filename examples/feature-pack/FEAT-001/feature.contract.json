@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "feature_id": "FEAT-001",
+  "title": "Todo priorities",
+  "spec_mode": "S1",
+  "risk_tier": "R1",
+  "status": "approved",
+  "base_ref": "HEAD",
+  "acceptance_criteria": [
+    {
+      "id": "AC-001",
+      "statement": "WHEN add(title, priority) is called with priority high, normal, or low, THE SYSTEM SHALL store that priority; WHEN priority is omitted, THE SYSTEM SHALL default it to normal.",
+      "evidence": "unit test"
+    },
+    {
+      "id": "AC-002",
+      "statement": "WHEN items() is called, THE SYSTEM SHALL return todos ordered high before normal before low, preserving insertion order within a priority.",
+      "evidence": "unit test"
+    },
+    {
+      "id": "AC-003",
+      "statement": "IF add() receives a priority outside {high, normal, low}, THEN THE SYSTEM SHALL raise ValueError and store nothing.",
+      "evidence": "unit test"
+    }
+  ],
+  "contracts": [
+    "TodoList.add(title: str, priority: str = 'normal') -> int",
+    "TodoList.items() -> list[dict] sorted by priority rank then insertion"
+  ],
+  "quality": {
+    "tests": "python3 -m unittest discover -s tests",
+    "non_goals": "no persistence changes, no CLI changes, no due dates"
+  },
+  "rollout": {
+    "strategy": "direct merge after external verification",
+    "rollback": "git revert of the candidate commits"
+  }
+}

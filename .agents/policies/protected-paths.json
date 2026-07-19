@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "always_protected": [
+    "MISSION.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    "aers.toml",
+    "CODEOWNERS",
+    "SECURITY.md",
+    ".agents/**",
+    ".specify/constitution.md",
+    ".specify/templates/**",
+    ".claude/hooks/**",
+    ".claude/settings.json",
+    ".claude/commands/**",
+    ".claude/agents/**",
+    ".github/workflows/**",
+    "scripts/aers/**",
+    "scripts/aers.py",
+    "scripts/loop.py",
+    "scripts/run_ready.py",
+    "evals/**"
+  ],
+  "test_patterns": [
+    "tests/**",
+    "test/**",
+    "**/tests/**",
+    "**/test/**",
+    "**/*_test.*",
+    "**/test_*.py",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/__tests__/**"
+  ],
+  "generated_patterns": [
+    "dist/**",
+    "build/**",
+    "vendor/**",
+    "generated/**",
+    "node_modules/**"
+  ],
+  "sensitive_patterns": [
+    "**/*auth*",
+    "**/*permission*",
+    "**/*secret*",
+    "**/*migration*",
+    "**/*schema*",
+    "**/*terraform*",
+    "**/*.tf",
+    "**/Dockerfile*",
+    "**/*lock*"
+  ]
+}

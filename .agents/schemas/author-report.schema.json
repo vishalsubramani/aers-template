@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "verdict",
+    "base_sha",
+    "candidate_sha",
+    "feature_id",
+    "task_id",
+    "integrity",
+    "commands",
+    "report_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "verdict": {
+      "enum": [
+        "AUTHOR_READY",
+        "AUTHOR_FAILED",
+        "DEGRADED"
+      ]
+    },
+    "base_sha": {
+      "type": "string"
+    },
+    "candidate_sha": {
+      "type": "string"
+    },
+    "feature_id": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "integrity": {
+      "type": "object"
+    },
+    "commands": {
+      "type": "array"
+    },
+    "report_hash": {
+      "type": "string"
+    }
+  }
+}

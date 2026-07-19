@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "status",
+    "statement",
+    "scope",
+    "provenance",
+    "sha256",
+    "review_by"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "proposal",
+        "quarantine",
+        "validated",
+        "active",
+        "expired",
+        "revoked"
+      ]
+    },
+    "statement": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "provenance": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sha256": {
+      "type": "string"
+    },
+    "review_by": {
+      "type": "string"
+    },
+    "curator": {
+      "type": "string"
+    },
+    "validation": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

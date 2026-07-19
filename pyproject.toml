@@ -1,0 +1,8 @@
+[project]
+name = "aers-template"
+version = "1.0.0"
+requires-python = ">=3.11"
+description = "AERS — Autonomous Engineering Repository Standard: a verified-autonomy control plane for any repository"
+
+[tool.aers]
+stdlib_only = true

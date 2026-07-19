@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "rule_of_two": true,
+  "capabilities": [
+    "untrusted_input",
+    "sensitive_access",
+    "external_effect"
+  ],
+  "max_autonomous_capabilities": 2,
+  "default": {
+    "network": "deny",
+    "secrets": "none",
+    "production": "deny",
+    "external_write": "deny"
+  },
+  "forbidden": [
+    "host_docker_socket",
+    "cloud_metadata",
+    "shared_ssh_agent",
+    "unscoped_cloud_identity",
+    "local_verified_attestation"
+  ]
+}

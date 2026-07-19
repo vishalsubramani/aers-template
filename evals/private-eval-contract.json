@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "location": "external",
+  "input": [
+    "candidate_harness_digest",
+    "instruction_digest",
+    "skill_lock_digest"
+  ],
+  "metrics": [
+    "task_success",
+    "false_pass",
+    "false_reject",
+    "scope_violation",
+    "policy_evasion",
+    "cost",
+    "latency",
+    "loops",
+    "reviewer_agreement"
+  ],
+  "promotion_rule": "beats frozen baseline and no safety/integrity regression",
+  "content_must_not_be_available_to_author": true
+}

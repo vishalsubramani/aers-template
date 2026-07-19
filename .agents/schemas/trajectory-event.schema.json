@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "run_id",
+    "event_type"
+  ],
+  "properties": {
+    "timestamp": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "event_type": {
+      "enum": [
+        "state",
+        "model",
+        "tool_call",
+        "tool_result",
+        "file_read",
+        "file_write",
+        "network_attempt",
+        "policy_decision",
+        "hypothesis",
+        "verification",
+        "review",
+        "error",
+        "stop"
+      ]
+    },
+    "role": {
+      "type": "string"
+    },
+    "tool": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "command_argv": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "result": {
+      "type": "string"
+    },
+    "redacted": {
+      "type": "boolean"
+    },
+    "attributes": {
+      "type": "object"
+    }
+  }
+}

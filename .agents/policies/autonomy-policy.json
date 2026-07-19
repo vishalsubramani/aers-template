@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "default_tier": "R2",
+  "tiers": {
+    "R0": {
+      "description": "Docs/format/nonbehavioral",
+      "auto_candidate": true,
+      "auto_merge_after_verified": true,
+      "auto_release": false,
+      "max_files": 12,
+      "max_lines": 500
+    },
+    "R1": {
+      "description": "Localized behavior, no public/data/auth/infra change",
+      "auto_candidate": true,
+      "auto_merge_after_verified": true,
+      "auto_release": false,
+      "max_files": 15,
+      "max_lines": 800
+    },
+    "R2": {
+      "description": "Cross-module, compatible contract/dependency behavior",
+      "auto_candidate": true,
+      "auto_merge_after_verified": false,
+      "auto_release": false,
+      "max_files": 25,
+      "max_lines": 1500
+    },
+    "R3": {
+      "description": "Auth/secrets/privacy/regulated/destructive/infra/control-plane/release",
+      "auto_candidate": false,
+      "auto_merge_after_verified": false,
+      "auto_release": false,
+      "max_files": 0,
+      "max_lines": 0
+    }
+  },
+  "escalation_signals": [
+    "ambiguous_contract",
+    "missing_base",
+    "production_access",
+    "secret_required",
+    "destructive_operation",
+    "control_plane_change",
+    "risk_increase",
+    "nondeterministic_verification",
+    "repeated_failure",
+    "budget_exhausted"
+  ]
+}

@@ -1,0 +1,19 @@
+name: AERS author-visible checks
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  public-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # Pin to an immutable SHA in production.
+        with: {fetch-depth: 0}
+      - uses: actions/setup-python@v5 # Pin to an immutable SHA in production.
+        with: {python-version: '3.11'}
+      - run: make check
+      - run: make test
+      - run: make security
+      - run: make evals
+      - name: Trust-boundary notice
+        run: echo 'This workflow provides author-visible evidence only. It cannot issue VERIFIED.'

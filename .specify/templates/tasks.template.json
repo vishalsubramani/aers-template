@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "feature_id": "FEAT-NNN",
+  "tasks": [
+    {
+      "id": "T-001",
+      "title": "Implement one bounded behavior",
+      "role": "implementer",
+      "depends_on": [],
+      "write_scope": [
+        "src/example/**"
+      ],
+      "acceptance": [
+        "AC-001"
+      ],
+      "commands": [
+        {
+          "name": "control-plane lint",
+          "argv": [
+            "python3",
+            "scripts/aers.py",
+            "lint"
+          ],
+          "timeout_seconds": 120,
+          "network": "deny"
+        }
+      ],
+      "budget": {
+        "max_attempts": 3,
+        "max_files": 10,
+        "max_lines": 600,
+        "max_seconds": 1800
+      },
+      "notes": ""
+    }
+  ]
+}

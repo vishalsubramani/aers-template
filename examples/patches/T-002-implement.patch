@@ -1,0 +1,35 @@
+diff --git a/src/todo/core.py b/src/todo/core.py
+index c125ce7..bc7762a 100644
+--- a/src/todo/core.py
++++ b/src/todo/core.py
+@@ -3,17 +3,21 @@ from __future__ import annotations
+ 
+ import itertools
+ 
++_PRIORITY_RANK = {"high": 0, "normal": 1, "low": 2}
++
+ 
+ class TodoList:
+     def __init__(self) -> None:
+         self._items: dict[int, dict] = {}
+         self._ids = itertools.count(1)
+ 
+-    def add(self, title: str) -> int:
++    def add(self, title: str, priority: str = "normal") -> int:
+         if not title or not title.strip():
+             raise ValueError("title must be a non-empty string")
++        if priority not in _PRIORITY_RANK:
++            raise ValueError(f"priority must be one of {sorted(_PRIORITY_RANK)}, got {priority!r}")
+         item_id = next(self._ids)
+-        self._items[item_id] = {"id": item_id, "title": title.strip(), "done": False}
++        self._items[item_id] = {"id": item_id, "title": title.strip(), "done": False, "priority": priority}
+         return item_id
+ 
+     def complete(self, item_id: int) -> None:
+@@ -22,4 +26,5 @@ class TodoList:
+         self._items[item_id]["done"] = True
+ 
+     def items(self) -> list[dict]:
+-        return [dict(item) for item in self._items.values()]
++        ordered = sorted(self._items.values(), key=lambda item: (_PRIORITY_RANK[item["priority"]], item["id"]))
++        return [dict(item) for item in ordered]

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "shell_strings": false,
+  "default": "deny",
+  "forbidden_tokens": [
+    "--force",
+    "reset --hard",
+    "clean -fdx",
+    "rm -rf /",
+    "curl | sh",
+    "wget | sh",
+    "chmod -R 777",
+    "printenv",
+    "/proc/self/environ"
+  ],
+  "notes": [
+    "Runtime sandbox and OS permissions are authoritative; string rules are defense in depth."
+  ]
+}

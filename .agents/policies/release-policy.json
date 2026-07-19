@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "requires": [
+    "VERIFIED_attestation",
+    "immutable_artifact",
+    "sbom",
+    "build_provenance",
+    "signed_artifact",
+    "vulnerability_policy",
+    "staged_rollout",
+    "health_gate",
+    "automated_rollback",
+    "post_deploy_observation"
+  ],
+  "forbidden": [
+    "agent_direct_production_shell",
+    "release_from_worktree",
+    "mutable_post_verify_artifact",
+    "silent_health_gate_bypass"
+  ]
+}

@@ -1,0 +1,18 @@
+# REFERENCE ONLY — host this in a separate protected repository or verifier service.
+# Trigger from an immutable candidate artifact/digest, not a writable author worktree.
+# Never expose private tests or signing secrets to candidate code.
+name: External AERS trusted verifier
+on: workflow_dispatch
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  verify:
+    runs-on: [self-hosted, ephemeral, trusted-verifier]
+    steps:
+      - name: Fetch candidate by immutable digest
+        run: ./trusted-fetch-candidate
+      - name: Run candidate in no-network low-privilege sandbox against protected oracle
+        run: ./trusted-verify
+      - name: Emit bounded result and sign candidate/evidence attestation
+        run: ./trusted-attest

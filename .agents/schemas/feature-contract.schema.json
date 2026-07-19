@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AERS Feature Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "feature_id",
+    "title",
+    "spec_mode",
+    "risk_tier",
+    "status",
+    "base_ref",
+    "acceptance_criteria",
+    "contracts",
+    "quality",
+    "rollout"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "feature_id": {
+      "pattern": "^FEAT-[A-Za-z0-9._-]+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 3
+    },
+    "spec_mode": {
+      "enum": [
+        "S0",
+        "S1",
+        "S2"
+      ]
+    },
+    "risk_tier": {
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3"
+      ]
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "approved",
+        "executing",
+        "author_ready",
+        "verified",
+        "released",
+        "archived"
+      ]
+    },
+    "base_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "owner": {
+      "type": "string"
+    },
+    "non_goals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "statement",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "pattern": "^AC-[0-9]{3}$"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "kind",
+          "compatibility"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "api",
+              "event",
+              "schema",
+              "cli",
+              "ui",
+              "data",
+              "internal"
+            ]
+          },
+          "compatibility": {
+            "enum": [
+              "unchanged",
+              "backward_compatible",
+              "breaking"
+            ]
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "required": [
+        "security",
+        "reliability",
+        "observability"
+      ],
+      "properties": {
+        "security": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reliability": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "observability": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "performance": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "rollout": {
+      "type": "object",
+      "required": [
+        "strategy",
+        "rollback"
+      ],
+      "properties": {
+        "strategy": {
+          "type": "string"
+        },
+        "rollback": {
+          "type": "string"
+        },
+        "health_gates": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

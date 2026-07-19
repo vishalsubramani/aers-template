@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "event_id",
+    "run_id",
+    "sequence",
+    "event_type",
+    "timestamp",
+    "payload",
+    "prev_hash",
+    "event_hash"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "sequence": {
+      "type": "integer"
+    },
+    "event_type": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object"
+    },
+    "prev_hash": {
+      "type": "string"
+    },
+    "event_hash": {
+      "type": "string"
+    }
+  }
+}

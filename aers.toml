@@ -1,0 +1,29 @@
+version = 1
+state_dir = ".aers-runtime"
+evidence_dir = ".aers-evidence"
+feature_root = ".specify/specs"
+default_branch = "main"
+default_spec_mode = "S1"
+
+[budgets]
+max_attempts = 3
+max_changed_files = 20
+max_changed_lines = 1200
+max_seconds = 3600
+
+[verification]
+require_clean_candidate = true
+require_network_isolation = true
+local_verdict = "AUTHOR_READY"
+trusted_verdict = "VERIFIED"
+
+[security]
+rule_of_two = true
+allow_shell_command_strings = false
+allow_same_run_policy_activation = false
+allow_local_verified = false
+
+[telemetry]
+format = "otlp-jsonl-compatible"
+capture_content = false
+redact_by_default = true

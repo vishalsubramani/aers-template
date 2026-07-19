@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "input": [
+    "harness_version",
+    "instruction_digest",
+    "candidate_change"
+  ],
+  "requirements": [
+    "external_holdout",
+    "contamination_check",
+    "multiple_trials",
+    "evaluator_health",
+    "baseline_comparison",
+    "safety_non_regression"
+  ],
+  "output": [
+    "aggregate_metrics",
+    "confidence_intervals",
+    "fault_distribution",
+    "promotion_decision"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "feature_id": "FEAT-001",
+  "tasks": [
+    {
+      "id": "T-001",
+      "title": "Author failing acceptance tests for priorities (TDD red)",
+      "role": "test_author",
+      "depends_on": [],
+      "write_scope": ["tests/**"],
+      "acceptance": ["AC-001", "AC-002", "AC-003"],
+      "commands": [
+        {
+          "name": "baseline suite stays green",
+          "argv": ["python3", "-m", "unittest", "discover", "-s", "tests", "-p", "test_core*.py"],
+          "timeout_seconds": 120,
+          "network": "deny"
+        }
+      ],
+      "differential": {
+        "argv_template": ["python3", "{file}"],
+        "timeout_seconds": 120
+      },
+      "budget": {"max_attempts": 3, "max_files": 3, "max_lines": 200, "max_seconds": 900},
+      "notes": "New tests must fail on base (differential gate) and are excluded from this task's green suite; T-002 turns them green."
+    },
+    {
+      "id": "T-002",
+      "title": "Implement priorities in TodoList (TDD green)",
+      "role": "implementer",
+      "depends_on": ["T-001"],
+      "write_scope": ["src/todo/**"],
+      "acceptance": ["AC-001", "AC-002", "AC-003"],
+      "commands": [
+        {
+          "name": "full suite green",
+          "argv": ["python3", "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"],
+          "timeout_seconds": 180,
+          "network": "deny"
+        }
+      ],
+      "budget": {"max_attempts": 3, "max_files": 3, "max_lines": 250, "max_seconds": 900},
+      "notes": ""
+    }
+  ]
+}

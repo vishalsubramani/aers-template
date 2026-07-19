@@ -1,0 +1,81 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./.aers-runtime/**)",
+      "Read(./.aers-evidence/**)",
+      "Write(./MISSION.md)",
+      "Write(./AGENTS.md)",
+      "Write(./aers.toml)",
+      "Write(./.agents/**)",
+      "Write(./.specify/constitution.md)",
+      "Write(./.specify/templates/**)",
+      "Write(./.claude/**)",
+      "Write(./.github/workflows/**)",
+      "Write(./scripts/aers/**)",
+      "Write(./scripts/aers.py)",
+      "Write(./scripts/loop.py)",
+      "Write(./scripts/run_ready.py)",
+      "Write(./evals/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/pre-tool.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/task-completed.py",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "ConfigChange": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/config-change.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/pre-compact.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/session-end.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

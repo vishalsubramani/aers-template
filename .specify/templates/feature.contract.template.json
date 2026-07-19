@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "feature_id": "FEAT-NNN",
+  "title": "Replace title",
+  "spec_mode": "S1",
+  "risk_tier": "R2",
+  "status": "draft",
+  "base_ref": "REPLACE_WITH_APPROVED_BASE_SHA",
+  "owner": "REPLACE_WITH_OWNER",
+  "non_goals": [],
+  "acceptance_criteria": [
+    {
+      "id": "AC-001",
+      "statement": "Replace with objective observable behavior",
+      "evidence": [
+        "public:test-id",
+        "private:acceptance-id"
+      ]
+    }
+  ],
+  "contracts": [],
+  "quality": {
+    "security": [],
+    "reliability": [],
+    "observability": [],
+    "performance": []
+  },
+  "rollout": {
+    "strategy": "Replace rollout strategy",
+    "rollback": "Replace rollback procedure",
+    "health_gates": []
+  }
+}
