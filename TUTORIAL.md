@@ -150,8 +150,10 @@ AERS_STUB_PATCH="$PWD/examples/patches/NEG-evil-loosen-test.patch" \
 # -> exit 2, findings OUTSIDE_WRITE_SCOPE + IMPLEMENTER_EDITED_TEST,
 #    worktree rolled back, failed-attempt.patch preserved in evidence.
 
-# A test that does not actually test the new behavior (fresh dir again,
-# since T-001 above is now author_ready):
+# A test that does not actually test the new behavior. T-001 above is now
+# author_ready and cannot be re-run, so start a fresh demo dir:
+bash examples/setup-demo.sh /tmp/aers-attack2 && cd /tmp/aers-attack2
+# (re-export the AERS_* variables from Part 2, incl. AERS_NETWORK_ISOLATED=1)
 AERS_STUB_PATCH="$PWD/examples/patches/NEG-differential-nondiscriminating.patch" \
   python3 scripts/loop.py --feature FEAT-001 --task T-001
 # -> AUTHOR_FAILED: DIFFERENTIAL_TEST_PASSES_ON_BASE
@@ -266,8 +268,15 @@ limits; never wire `allow_local_verified`.
   the dependent's evidence no longer reflects reality. `run_ready` and
   `ledger-show` report these as `stale_stacks`; re-run the dependent with
   `python3 scripts/aers.py requeue --feature FEAT-101 --task T-00N --reason
-  "stale stack"` (an explicit human action recorded on the event chain) before
-  external verification.
+  "stale stack"` (an explicit human action recorded on the event chain, which
+  resets the attempt counter) before external verification. A verified-stale
+  task cannot be rewound — it must be re-verified externally.
+- **Recovering stuck tasks**: a run killed mid-flight (crash, SIGKILL) leaves
+  its task in an intermediate state with no live process; a `safe_stopped` task
+  is parked for human attention. Return either to service with
+  `python3 scripts/aers.py requeue --feature FEAT-101 --task T-00N --force
+  --reason "..."` — a journaled human override (the only path that bypasses the
+  normal transition table, and only from a non-terminal state).
 - **Cleanup**: after merge, `git worktree remove <path>` and delete the
   `aers/...` branch; evidence dirs are your audit trail — archive, don't
   delete.

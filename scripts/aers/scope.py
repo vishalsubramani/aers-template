@@ -10,7 +10,7 @@ from typing import Any
 import json
 
 from .contracts import ContractBundle, load_bundle
-from .git import changed_paths, diff_numstat, read_file_at_ref, rev_parse
+from .git import changed_paths, deleted_paths, diff_numstat, read_file_at_ref, rev_parse
 from .util import load_json
 
 POLICY_PATH = ".agents/policies/protected-paths.json"
@@ -90,6 +90,7 @@ def evaluate_scope(repo: Path, feature_id: str, task_id: str, base_ref: str, con
     task = bundle.task
     role = task["role"]
     changed = changed_paths(repo, base_sha)
+    deleted = deleted_paths(repo, base_sha)
     total_lines, _ = diff_numstat(repo, base_sha)
     policy = load_protected_policy(repo, contract_sha)
     findings: list[ScopeFinding] = []
@@ -102,14 +103,16 @@ def evaluate_scope(repo: Path, feature_id: str, task_id: str, base_ref: str, con
     read_only_roles = {"explorer", "reviewer", "security", "sre"}
     for path in changed:
         kinds = classify_path(path, policy)
+        is_deleted = path in deleted
+        verb = "deleted" if is_deleted else "wrote"
         if role in read_only_roles:
-            findings.append(ScopeFinding("critical", "READ_ONLY_ROLE_WROTE", path, f"Role {role} is read-only"))
+            findings.append(ScopeFinding("critical", "READ_ONLY_ROLE_WROTE", path, f"Role {role} is read-only ({verb})"))
         if not matches(path, task["write_scope"]):
-            findings.append(ScopeFinding("high", "OUTSIDE_WRITE_SCOPE", path, "Path is outside immutable task write scope"))
+            findings.append(ScopeFinding("high", "OUTSIDE_WRITE_SCOPE", path, f"Path is outside immutable task write scope ({verb})"))
         if "protected" in kinds:
-            findings.append(ScopeFinding("critical", "PROTECTED_PATH", path, "Control-plane or verifier path is protected"))
+            findings.append(ScopeFinding("critical", "PROTECTED_PATH", path, f"Control-plane or verifier path is protected ({verb})"))
         if role == "implementer" and "test" in kinds:
-            findings.append(ScopeFinding("critical", "IMPLEMENTER_EDITED_TEST", path, "Implementer cannot write tests"))
+            findings.append(ScopeFinding("critical", "IMPLEMENTER_EDITED_TEST", path, f"Implementer cannot {verb} tests"))
         if role == "test_author" and "test" not in kinds and not matches(path, ["testdata/**", "fixtures/**", "**/fixtures/**"]):
             findings.append(ScopeFinding("high", "TEST_AUTHOR_EDITED_NONTEST", path, "Test author may only write tests/fixtures"))
         if role == "architect" and not matches(path, [f".specify/specs/{feature_id}/**", "docs/adr/**", "docs/architecture/**"]):
@@ -118,9 +121,10 @@ def evaluate_scope(repo: Path, feature_id: str, task_id: str, base_ref: str, con
             findings.append(ScopeFinding("high", "DOC_ROLE_EDITED_CODE", path, "Documentation role is limited to documentation"))
         if "generated" in kinds:
             findings.append(ScopeFinding("medium", "GENERATED_PATH", path, "Generated/vendor surface changed; require canonical generator evidence"))
-        escape = _symlink_escape(repo, path)
-        if escape:
-            findings.append(ScopeFinding("critical", "SYMLINK_PATH", path, escape))
+        if not is_deleted:  # a deleted path has nothing on disk to stat
+            escape = _symlink_escape(repo, path)
+            if escape:
+                findings.append(ScopeFinding("critical", "SYMLINK_PATH", path, escape))
 
     passed = not any(f.severity in {"high", "critical"} for f in findings)
     return ScopeReport(

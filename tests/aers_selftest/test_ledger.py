@@ -75,4 +75,24 @@ class LedgerTests(unittest.TestCase):
             self.assertEqual(l.task("FEAT-X","T-001")["status"],"pending")
             self.assertTrue(l.verify_chain(run))  # forced reset is journaled, chain intact
 
+    def test_requeue_resets_attempts_so_task_can_rerun(self):
+        with tempfile.TemporaryDirectory() as td:
+            tasks=self.tasks();tasks["tasks"][0]["budget"]["max_attempts"]=1
+            l=Ledger(Path(td)/"ledger.db");l.register(self.feature(),tasks,"a"*40)
+            self.walk(l,"T-001")  # reaches author_ready at attempts=1 (the cap)
+            self.assertEqual(l.task("FEAT-X","T-001")["attempts"],1)
+            l.requeue("FEAT-X","T-001","withdrawn")
+            task=l.task("FEAT-X","T-001")
+            self.assertEqual(task["status"],"pending")
+            self.assertEqual(task["attempts"],0)  # fresh authorization — not stranded at the cap
+
+    def test_force_recovers_safe_stopped(self):
+        with tempfile.TemporaryDirectory() as td:
+            l=Ledger(Path(td)/"ledger.db");l.register(self.feature(),self.tasks(),"a"*40)
+            run=l.start_run("FEAT-X","T-001","owner")
+            l.transition("FEAT-X","T-001","safe_stopped",run)
+            with self.assertRaises(ValueError):l.requeue("FEAT-X","T-001","resume")  # not without force
+            l.requeue("FEAT-X","T-001","human resumed after review",force=True)
+            self.assertEqual(l.task("FEAT-X","T-001")["status"],"pending")
+
 if __name__ == "__main__":unittest.main()

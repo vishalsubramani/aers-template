@@ -30,8 +30,18 @@ def lint_repo(repo: Path) -> dict[str, Any]:
     except Exception as exc:
         findings.append({"severity":"error","code":"INVALID_TOML","message":str(exc)})
 
+    # Validate JSON/Python only under CONTROL-PLANE roots. The adopter's own
+    # application code and data are their test suite's concern — the
+    # control-plane lint must not fail because their app has a syntax error.
+    control_roots = (".agents", ".specify", ".claude", ".github", "scripts", "evals")
+    def _in_control_plane(path: Path) -> bool:
+        rel = path.relative_to(repo).parts
+        return bool(rel) and rel[0] in control_roots
+
     for path in repo.rglob("*.json"):
         if any(part in {".git", ".aers-runtime", ".aers-evidence"} for part in path.parts):
+            continue
+        if not _in_control_plane(path):
             continue
         try:
             json.loads(path.read_text(encoding="utf-8"))
@@ -40,6 +50,8 @@ def lint_repo(repo: Path) -> dict[str, Any]:
 
     for path in repo.rglob("*.py"):
         if ".git" in path.parts:
+            continue
+        if not _in_control_plane(path):
             continue
         try:
             py_compile.compile(str(path), doraise=True)

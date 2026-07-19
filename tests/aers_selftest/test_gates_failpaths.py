@@ -71,7 +71,75 @@ class AuthorVerifyFailClosedTests(unittest.TestCase):
                 self.assertTrue(any("isolation" in r.lower() for r in report["fatal_reasons"]))
 
 
+class CommandFailureTests(unittest.TestCase):
+    def test_failing_command_blocks_author_ready(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo, base = scaffold(td, ["src/**"],
+                                  [{"name": "gate", "argv": ["false"], "timeout_seconds": 10, "network": "deny"}])
+            (repo / "src/app.py").write_text("x = 9\n")
+            git(repo, "commit", "-aqm", "candidate")
+            os.environ["AERS_NETWORK_ISOLATED"] = "1"  # let the command actually run on any host
+            try:
+                report = author_verify(repo, "FEAT-X", "T-001", base, Path(td) / "a.json", degraded=False, contract_ref=base)
+            finally:
+                os.environ.pop("AERS_NETWORK_ISOLATED", None)
+            self.assertEqual(report["verdict"], "AUTHOR_FAILED")
+            self.assertTrue(any("gate" in r for r in report["fatal_reasons"]))
+
+
+class DifferentialGateTests(unittest.TestCase):
+    def _scaffold_test_author(self, td, test_body):
+        repo = Path(td)
+        git(repo, "init", "-q", "-b", "main")
+        git(repo, "config", "user.name", "t")
+        git(repo, "config", "user.email", "t@invalid.local")
+        (repo / ".agents/policies").mkdir(parents=True)
+        (repo / ".agents/policies/protected-paths.json").write_text(json.dumps(POLICY))
+        (repo / ".specify/specs/FEAT-X").mkdir(parents=True)
+        (repo / ".specify/specs/FEAT-X/feature.contract.json").write_text(json.dumps(FEATURE))
+        # Dependency-free: the "test" is a plain Python script run directly, so
+        # no pytest is required on the host or in CI.
+        task = {"id": "T-001", "title": "t", "role": "test_author", "depends_on": [],
+                "write_scope": ["tests/**"], "acceptance": ["AC-001"],
+                "commands": [{"name": "suite", "argv": ["true"], "timeout_seconds": 30, "network": "deny"}],
+                "differential": {"argv_template": ["python3", "{file}"], "timeout_seconds": 30},
+                "budget": {"max_attempts": 2, "max_files": 10, "max_lines": 500, "max_seconds": 60}}
+        (repo / ".specify/specs/FEAT-X/tasks.json").write_text(
+            json.dumps({"schema_version": 1, "feature_id": "FEAT-X", "tasks": [task]}))
+        (repo / "tests").mkdir()
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "contract")
+        base = git(repo, "rev-parse", "HEAD")
+        (repo / "tests/test_new.py").write_text(test_body)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "candidate")
+        return repo, base
+
+    def test_nondiscriminating_test_fails_on_base_gate(self):
+        with tempfile.TemporaryDirectory() as td:
+            # A "test" that passes even on base (asserts nothing about new
+            # behavior) must be caught by the differential gate.
+            repo, base = self._scaffold_test_author(td, "assert 1 == 1\n")
+            os.environ["AERS_NETWORK_ISOLATED"] = "1"
+            try:
+                report = author_verify(repo, "FEAT-X", "T-001", base, Path(td) / "a.json", degraded=False, contract_ref=base)
+            finally:
+                os.environ.pop("AERS_NETWORK_ISOLATED", None)
+            self.assertTrue(any("DIFFERENTIAL_TEST_PASSES_ON_BASE" in r for r in report["fatal_reasons"]),
+                            f"expected differential failure, got {report['fatal_reasons']}")
+            self.assertEqual(report["verdict"], "AUTHOR_FAILED")
+
+
 class AuditTamperTests(unittest.TestCase):
+    def test_secret_in_diff_flags_audit(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo, base = scaffold(td, ["src/**"], [])
+            (repo / "src/app.py").write_text('AWS = "AKIA1234567890ABCDEF"\n')
+            git(repo, "commit", "-aqm", "candidate with secret")
+            report = audit_candidate(repo, "FEAT-X", "T-001", base, "RUN-S", None, Path(td) / "audit.json", contract_ref=base)
+            self.assertIn(report["verdict"], {"needs_review", "fail"},
+                          "a hardcoded AKIA secret in the diff must not pass clean")
+
     def test_trajectory_bypass_event_flags_review(self):
         with tempfile.TemporaryDirectory() as td:
             repo, base = scaffold(td, ["src/**"], [])

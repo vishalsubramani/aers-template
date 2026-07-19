@@ -247,16 +247,17 @@ class Ledger:
 
     INTERMEDIATE_STATES = {"leased", "implementing", "scope_passed", "candidate_committed",
                            "author_verifying", "auditing", "reviewing"}
+    FORCE_RECOVERABLE = INTERMEDIATE_STATES | {"safe_stopped", "rejected"}
 
     def requeue(self, feature_id: str, task_id: str, reason: str, force: bool = False) -> None:
         """Explicit human re-queue back to `pending`, clearing the candidate
-        binding. Two cases, both recorded on the event chain, never called by a
-        runner:
-        - a finished-but-stale/withdrawn candidate (author_ready -> pending), or
-        - `force=True`, an orphaned in-flight task whose process died
-          (SIGKILL/crash) and left it stuck in an intermediate state with no
-          process to fail it. Force bypasses the normal transition table but is
-          still journaled with the human reason.
+        binding and RESETTING the attempt counter (a human requeue is a fresh
+        authorization to attempt). Always journaled, never called by a runner:
+        - normal: a finished-but-stale/withdrawn candidate (author_ready -> pending);
+        - `force=True`: recover a task stuck with no live process — an orphaned
+          in-flight run (crash/SIGKILL) OR a `safe_stopped`/`rejected` task a
+          human has decided to return to service. Force bypasses the normal
+          transition table but is still journaled with the reason.
         """
         if not reason.strip():
             raise ValueError("Requeue requires a human-stated reason")
@@ -267,16 +268,16 @@ class Ledger:
         if not row or not status_row:
             raise ValueError("No prior run recorded; nothing to requeue")
         current = status_row["status"]
-        if force and current in self.INTERMEDIATE_STATES:
-            # Journaled human override for an orphaned run — the only path that
-            # bypasses ALLOWED_TASK_TRANSITIONS, and only from an intermediate state.
+        if force and current in self.FORCE_RECOVERABLE:
             with self.connect() as conn:
-                conn.execute("UPDATE tasks SET status='pending', candidate_sha=NULL, lease_owner=NULL WHERE feature_id=? AND task_id=?",
+                conn.execute("UPDATE tasks SET status='pending', candidate_sha=NULL, lease_owner=NULL, attempts=0 WHERE feature_id=? AND task_id=?",
                              (feature_id, task_id))
             self.append_event(row["run_id"], "state_transition",
                               {"from": current, "to": "pending", "requeue": True, "forced": True, "reason": reason.strip()})
             return
+        if force:
+            raise ValueError(f"--force cannot recover a terminal state: {current}")
         self.transition(feature_id, task_id, "pending", row["run_id"], {"requeue": True, "reason": reason.strip()})
         with self.connect() as conn:
-            conn.execute("UPDATE tasks SET candidate_sha=NULL, lease_owner=NULL WHERE feature_id=? AND task_id=?",
+            conn.execute("UPDATE tasks SET candidate_sha=NULL, lease_owner=NULL, attempts=0 WHERE feature_id=? AND task_id=?",
                          (feature_id, task_id))

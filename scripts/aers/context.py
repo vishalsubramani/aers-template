@@ -66,22 +66,34 @@ def select_active_lessons(repo: Path, write_scope: list[str], tracked_paths: lis
         records[record["id"]] = record
     scoped_paths = [p for p in tracked_paths if matches(p, write_scope)]
 
-    def relevant(record: dict[str, Any]) -> bool:
+    def tier(record: dict[str, Any]) -> int:
+        """Lower is more relevant. 0: a tracked path in scope matches the
+        lesson's globs (direct hit). 1: pattern-level scope overlap (creation
+        tasks). 2: global lesson. 3: reached only via a link. Ranking before
+        truncation keeps recall sharp as memory grows — specific beats broad."""
         globs = record.get("scope") or []
-        if not globs or "**" in globs:
-            return True
         if any(matches(p, globs) for p in scoped_paths):
-            return True
-        return any(_globs_overlap(g, w) for g in globs for w in write_scope)
+            return 0
+        if any(_globs_overlap(g, w) for g in globs for w in write_scope):
+            return 1
+        if not globs or "**" in globs:
+            return 2
+        return 3
 
-    direct = [r for r in records.values() if relevant(r)]
-    selected = {r["id"]: r for r in direct}
-    for record in direct:
-        for linked_id in record.get("links", []):
+    tiers = {r["id"]: tier(r) for r in records.values()}
+    selected: dict[str, int] = {rid: t for rid, t in tiers.items() if t <= 2}
+    for rid in list(selected):
+        for linked_id in records[rid].get("links", []):
             if linked_id in records:
-                selected.setdefault(linked_id, records[linked_id])
-    ordered = sorted(selected.values(), key=lambda r: r["id"], reverse=True)
-    return ordered[:MAX_LESSONS]
+                selected.setdefault(linked_id, 3)  # link-reached, lowest priority
+    # Sort by (tier asc, id desc) — most relevant first, newest breaking ties.
+    ordered = sorted(selected, key=lambda rid: (selected[rid], _neg_id(rid)))
+    return [records[rid] for rid in ordered[:MAX_LESSONS]]
+
+
+def _neg_id(record_id: str) -> tuple:
+    # Sort helper: newer IDs (lexicographically larger) come first within a tier.
+    return tuple(-ord(c) for c in record_id)
 
 
 def build_context_packet(repo: Path, feature_id: str, task_id: str, base_ref: str, output: Path,

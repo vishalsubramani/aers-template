@@ -56,11 +56,46 @@ def read_file_at_ref(repo: Path, ref: str, relpath: str) -> bytes:
     return result.stdout.encode("utf-8")
 
 
+def _name_status(repo: Path, base_sha: str) -> list[tuple[str, str]]:
+    """Parse `git diff --name-status` into (status, path) pairs. Renames/copies
+    yield both a delete of the source and an add of the destination so no
+    affected path — including the vacated one — escapes classification."""
+    out = run_git(repo, ["diff", "--name-status", "-z", base_sha, "--"]).stdout
+    tokens = out.split("\0")
+    pairs: list[tuple[str, str]] = []
+    i = 0
+    while i < len(tokens):
+        status = tokens[i].strip()
+        if not status:
+            i += 1
+            continue
+        code = status[0]
+        if code in {"R", "C"}:  # rename/copy: <status>\0<old>\0<new>
+            old, new = tokens[i + 1], tokens[i + 2]
+            if code == "R":
+                pairs.append(("D", old))
+            pairs.append(("A", new))
+            i += 3
+        else:
+            pairs.append((code, tokens[i + 1]))
+            i += 2
+    return pairs
+
+
 def changed_paths(repo: Path, base_ref: str) -> list[str]:
+    """Every path the candidate touches, INCLUDING deletions — a deleted
+    guardrail or test must still be classified and gated."""
     base_sha = rev_parse(repo, base_ref)
-    tracked = run_git(repo, ["diff", "--name-only", "--diff-filter=ACMRTUXB", base_sha, "--"]).stdout.splitlines()
+    tracked = [p for _s, p in _name_status(repo, base_sha)]
     untracked = run_git(repo, ["ls-files", "--others", "--exclude-standard"]).stdout.splitlines()
     return sorted({p.strip() for p in [*tracked, *untracked] if p.strip()})
+
+
+def deleted_paths(repo: Path, base_ref: str) -> set[str]:
+    """Paths removed by the candidate (absent from the candidate tree). The
+    scope gate classifies these but skips filesystem-dependent checks on them."""
+    base_sha = rev_parse(repo, base_ref)
+    return {p for s, p in _name_status(repo, base_sha) if s == "D"}
 
 
 def diff_numstat(repo: Path, base_ref: str) -> tuple[int, dict[str, int]]:

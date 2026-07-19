@@ -12,7 +12,9 @@ from typing import Any
 
 SECRET_PATTERNS = [
     re.compile(r"gh[pousr]_[A-Za-z0-9_]{20,}"),
+    re.compile(r"github_pat_[A-Za-z0-9_]{20,}"),                      # GitHub fine-grained PAT
     re.compile(r"AKIA[0-9A-Z]{16}"),
+    re.compile(r"AIza[0-9A-Za-z_-]{35}"),                            # Google API key
     re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"),                       # Slack tokens
     re.compile(r"sk-[A-Za-z0-9_-]{16,}"),                             # OpenAI-style keys
     re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"),  # JWTs
