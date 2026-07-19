@@ -10,6 +10,8 @@ from aers.git import head_sha, is_clean
 REPO = Path(__file__).resolve().parents[2]
 
 
+@unittest.skipUnless((REPO / ".git").exists(),
+                     "evidence manifest needs a git worktree; skipped in a hermetic clean export")
 class EvidenceTests(unittest.TestCase):
     def test_manifest_binds_candidate_and_runs_from_clean_export(self):
         manifest = evidence.build_manifest(REPO, profile="standard")

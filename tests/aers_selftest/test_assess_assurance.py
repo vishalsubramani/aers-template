@@ -58,7 +58,8 @@ class AssuranceTests(unittest.TestCase):
         self.assertEqual(report["broken"], 0, [r for r in report["results"] if r["status"] == "BROKEN"])
         self.assertEqual(report["unsupported"], 0)
         self.assertEqual(report["stale"], 0)
-        self.assertIsNotNone(report["candidate_sha"])  # bound to the exact candidate
+        if (REPO / ".git").exists():  # candidate binding needs git; skipped in a hermetic export
+            self.assertIsNotNone(report["candidate_sha"])
 
     def test_detects_broken_claim_mapping(self):
         case = json.loads((REPO / assurance.CASE_PATH).read_text())
