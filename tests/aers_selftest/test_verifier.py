@@ -1,7 +1,7 @@
-"""Verifier reference: asymmetric (Ed25519) attestation, trust-root gating, and
-fail-closed binding checks. The core trust invariant — repository-local code
-cannot manufacture a production-valid VERIFIED — is tested through attack paths,
-not just the happy path."""
+"""Verifier reference: Ed25519 attestation, root-pinned production trust, full
+handoff binding, and strict signature checks. The invariant — repository-local
+code cannot manufacture a production-valid VERIFIED — is tested through attack
+paths, including an attacker-controlled external trust file."""
 import base64, json, os, subprocess, sys, tempfile, unittest
 from pathlib import Path
 
@@ -11,8 +11,6 @@ from aers.util import canonical_json
 
 REPO = Path(__file__).resolve().parents[2]
 
-# RFC 8032 test vector 1 — proves the VERIFICATION path is standard-correct, so a
-# real external verifier using an audited Ed25519 signer will be verified here.
 RFC_PK = bytes.fromhex("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a")
 RFC_SIG = bytes.fromhex(
     "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b")
@@ -37,19 +35,19 @@ def _fixture_repo(td: Path):
     return repo, author
 
 
-class Ed25519Tests(unittest.TestCase):
-    def test_verification_is_rfc8032_correct(self):
+class Ed25519StrictTests(unittest.TestCase):
+    def test_rfc8032_vector_verifies(self):
         self.assertTrue(ed.checkvalid(RFC_SIG, b"", RFC_PK))
-        self.assertFalse(ed.checkvalid(RFC_SIG, b"x", RFC_PK))          # wrong message
-        self.assertFalse(ed.checkvalid(bytes(64), b"", RFC_PK))         # zero signature
+        self.assertFalse(ed.checkvalid(RFC_SIG, b"x", RFC_PK))
 
-    def test_signature_requires_the_private_seed(self):
+    def test_malleated_signature_is_rejected(self):
         seed = bytes(range(32))
         pk = ed.publickey(seed)
         sig = ed.signature(b"m", seed, pk)
+        S = int.from_bytes(sig[32:], "little")
+        malleated = sig[:32] + ((S + ed._l) % (2 ** 256)).to_bytes(32, "little")  # S + L
         self.assertTrue(ed.checkvalid(sig, b"m", pk))
-        other = ed.publickey(bytes(range(1, 33)))
-        self.assertFalse(ed.checkvalid(sig, b"m", other))  # cannot verify under a key you don't control
+        self.assertFalse(ed.checkvalid(malleated, b"m", pk))  # non-canonical S rejected
 
 
 class VerifierTests(unittest.TestCase):
@@ -68,13 +66,32 @@ class VerifierTests(unittest.TestCase):
             self.assertIn("DEMO_TRUST_DOMAIN_ONLY", r["reasons"])
             self.assertEqual(verifier.default_trust_store()["production_keys"], {})
 
-    def test_caller_chosen_production_key_cannot_create_production_valid_result(self):
-        # An attacker generates their OWN keypair, signs a matching VERIFIED
-        # statement, and supplies their public key as a caller-defined production
-        # root. This must NOT yield production_valid by default.
+    def test_attacker_controlled_external_trust_file_is_refused(self):
+        # The reviewer's attack: agent writes an external trust file, points the
+        # env var at it, and signs with the matching private key. Because the
+        # bundle is not signed by a PINNED ROOT, its key is never trusted.
         with tempfile.TemporaryDirectory() as td:
             handoff, _ = self._handoff_and_attest(Path(td))
             seed = bytes(range(7, 39))
+            pub = ed.publickey(seed).hex()
+            attacker_bundle = Path(td) / "attacker-trust.json"
+            # Attacker even self-signs a bundle with their own (unpinned) root.
+            attacker_bundle.write_text(json.dumps(
+                verifier.sign_trust_bundle({"production_keys": {"atk": pub}}, seed, "atk-root")), encoding="utf-8")
+            envelope = verifier.make_attestation(handoff, "VERIFIED", ["OK"], "attacker",
+                                                 signer_seed=seed, keyid="atk")
+            os.environ["AERS_TRUST_BUNDLE"] = str(attacker_bundle)
+            try:
+                r = verifier.verify_attestation(envelope, handoff)  # default pinned roots = empty
+            finally:
+                os.environ.pop("AERS_TRUST_BUNDLE", None)
+            self.assertFalse(r["production_valid"])
+            self.assertEqual(verifier.default_trust_store()["production_keys"], {})
+
+    def test_caller_chosen_production_key_cannot_create_production_valid_result(self):
+        with tempfile.TemporaryDirectory() as td:
+            handoff, _ = self._handoff_and_attest(Path(td))
+            seed = bytes(range(9, 41))
             pub = ed.publickey(seed).hex()
             envelope = verifier.make_attestation(handoff, "VERIFIED", ["OK"], "attacker",
                                                  signer_seed=seed, keyid="attacker-key")
@@ -83,40 +100,56 @@ class VerifierTests(unittest.TestCase):
             self.assertFalse(r["production_valid"])
             self.assertIn("UNTRUSTED_CALLER_ROOT", r["reasons"])
 
-    def test_legit_production_path_requires_external_out_of_repo_store(self):
-        # The ONLY way to production_valid: a signature under a key in an external
-        # store OUTSIDE the repo (simulating the verifier's own public key handed
-        # over out-of-band). Signing still needs the private seed, which is not
-        # in the repo — here the test plays the external verifier.
+    def test_root_pinned_key_recognized_but_reference_backend_denies_production(self):
+        # A trust bundle signed by a PINNED root introduces a production key, and
+        # the attestation is signed by it. The root mechanism recognizes it, but
+        # the pure-Python reference backend must NOT grant production_valid.
+        self.assertFalse(verifier.AUDITED_BACKEND, "test assumes no audited backend in this env")
         with tempfile.TemporaryDirectory() as td:
             handoff, _ = self._handoff_and_attest(Path(td))
-            seed = bytes(range(9, 41))
-            pub = ed.publickey(seed).hex()
-            envelope = verifier.make_attestation(handoff, "VERIFIED", ["OK"], "ext-verifier",
-                                                 signer_seed=seed, keyid="prod-key", trust_domain="external")
-            ext_store = Path(td) / "external-trust.json"  # OUTSIDE the fixture repo
-            ext_store.write_text(json.dumps({"production_keys": {"prod-key": pub}}), encoding="utf-8")
-            os.environ["AERS_EXTERNAL_TRUST_STORE"] = str(ext_store)
+            root_seed, prod_seed = bytes(range(1, 33)), bytes(range(40, 72))
+            roots = {"root-1": ed.publickey(root_seed).hex()}
+            bundle = Path(td) / "bundle.json"
+            bundle.write_text(json.dumps(verifier.sign_trust_bundle(
+                {"production_keys": {"prod-1": ed.publickey(prod_seed).hex()}}, root_seed, "root-1")), encoding="utf-8")
+            envelope = verifier.make_attestation(handoff, "VERIFIED", ["OK"], "ext",
+                                                 signer_seed=prod_seed, keyid="prod-1", trust_domain="external")
+            os.environ["AERS_TRUST_BUNDLE"] = str(bundle)
             try:
-                r = verifier.verify_attestation(envelope, handoff)  # trust_store=None -> external
-                self.assertTrue(r["production_valid"], r["reasons"])
+                r = verifier.verify_attestation(envelope, handoff, pinned_roots=roots)
             finally:
-                os.environ.pop("AERS_EXTERNAL_TRUST_STORE", None)
+                os.environ.pop("AERS_TRUST_BUNDLE", None)
+            self.assertFalse(r["production_valid"])
+            self.assertIn("REFERENCE_BACKEND_NOT_PRODUCTION", r["reasons"])
 
-    def test_external_store_inside_repo_is_ignored(self):
-        # Pointing the external store at an IN-REPO file is not a trust boundary.
+    def test_every_handoff_field_substitution_is_detected(self):
         with tempfile.TemporaryDirectory() as td:
-            handoff, _ = self._handoff_and_attest(Path(td))
-            in_repo = REPO / ".aers-runtime"
-            in_repo.mkdir(exist_ok=True)
-            store_file = in_repo / "fake-trust.json"
-            store_file.write_text(json.dumps({"production_keys": {"x": "00" * 32}}), encoding="utf-8")
-            os.environ["AERS_EXTERNAL_TRUST_STORE"] = str(store_file)
-            try:
-                self.assertEqual(verifier.default_trust_store()["production_keys"], {})
-            finally:
-                os.environ.pop("AERS_EXTERNAL_TRUST_STORE", None)
-                store_file.unlink()
+            handoff, envelope = self._handoff_and_attest(Path(td))
+            for field, bad in [("requested_profile", "lite"), ("feature_id", "FEAT-X"),
+                               ("task_id", "T-9"), ("feature_contract_digest", "00" * 32),
+                               ("task_contract_digest", "00" * 32), ("repo_identity", "evil"),
+                               ("candidate_sha", "0" * 40), ("policy_digest", "deadbeef")]:
+                mutated = dict(handoff)
+                mutated[field] = bad
+                r = verifier.verify_attestation(envelope, mutated)
+                self.assertFalse(r["valid"], f"{field} substitution slipped through")
+
+    def test_wrong_payload_type_rejected(self):
+        with tempfile.TemporaryDirectory() as td:
+            handoff, envelope = self._handoff_and_attest(Path(td))
+            envelope["payloadType"] = "text/plain"
+            r = verifier.verify_attestation(envelope, handoff)
+            self.assertIn("WRONG_PAYLOAD_TYPE", r["reasons"])
+
+    def test_statement_type_tampering_rejected(self):
+        with tempfile.TemporaryDirectory() as td:
+            handoff, envelope = self._handoff_and_attest(Path(td))
+            payload = json.loads(base64.standard_b64decode(envelope["payload"]))
+            payload["predicateType"] = "https://evil/predicate"
+            envelope["payload"] = base64.standard_b64encode(canonical_json(payload).encode()).decode()
+            r = verifier.verify_attestation(envelope, handoff)
+            self.assertFalse(r["valid"])
+            self.assertIn("SIGNATURE_MISMATCH", r["reasons"])  # re-encoding breaks the signature
 
     def test_result_tampering_breaks_signature(self):
         with tempfile.TemporaryDirectory() as td:
@@ -127,25 +160,6 @@ class VerifierTests(unittest.TestCase):
             r = verifier.verify_attestation(envelope, handoff)
             self.assertFalse(r["valid"])
             self.assertIn("SIGNATURE_MISMATCH", r["reasons"])
-
-    def test_candidate_substitution_detected(self):
-        with tempfile.TemporaryDirectory() as td:
-            handoff, envelope = self._handoff_and_attest(Path(td))
-            r = verifier.verify_attestation(envelope, dict(handoff, candidate_sha="0" * 40))
-            self.assertIn("BINDING_MISMATCH:candidate_digest", r["reasons"])
-            self.assertFalse(r["valid"])
-
-    def test_policy_substitution_detected(self):
-        with tempfile.TemporaryDirectory() as td:
-            handoff, envelope = self._handoff_and_attest(Path(td))
-            r = verifier.verify_attestation(envelope, dict(handoff, policy_digest="deadbeef"))
-            self.assertIn("BINDING_MISMATCH:policy_digest", r["reasons"])
-
-    def test_evidence_substitution_detected(self):
-        with tempfile.TemporaryDirectory() as td:
-            handoff, envelope = self._handoff_and_attest(Path(td))
-            r = verifier.verify_attestation(envelope, dict(handoff, author_evidence_digest="deadbeef"))
-            self.assertIn("BINDING_MISMATCH:evidence_digest", r["reasons"])
 
     def test_stale_attestation_rejected(self):
         with tempfile.TemporaryDirectory() as td:

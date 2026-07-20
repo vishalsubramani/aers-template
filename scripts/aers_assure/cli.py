@@ -37,6 +37,8 @@ def build_parser() -> argparse.ArgumentParser:
     a = sub.add_parser("assess", help="compliance/maturity assessment against a profile")
     a.add_argument("--profile", default="standard", choices=profiles_mod.PROFILE_IDS)
     a.add_argument("--json", action="store_true"); a.add_argument("--output")
+    a.add_argument("--allow-partial", action="store_true",
+                   help="exit 0 on PARTIAL (informational). Default: only PASS exits 0; PARTIAL/FAIL exit 1.")
 
     sub.add_parser("profiles", help="list assurance profiles")
 
@@ -96,7 +98,13 @@ def main(argv: list[str] | None = None) -> int:
             if args.output:
                 atomic_write_json(Path(args.output), report)
             print(json.dumps(report, indent=2) if args.json else assess_mod.render_human(report))
-            return 0 if report["overall"] != "FAIL" else 1
+            # Only PASS is success. PARTIAL means required controls are partial/
+            # unverifiable and must not pass CI unless explicitly allowed.
+            if report["overall"] == "PASS":
+                return 0
+            if report["overall"] == "PARTIAL" and args.allow_partial:
+                return 0
+            return 1
 
         if args.command == "profiles":
             out = {}

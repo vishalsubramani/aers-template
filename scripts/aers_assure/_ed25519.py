@@ -112,6 +112,10 @@ def _decodeint(s: bytes) -> int:
 
 def _decodepoint(s: bytes):
     y = int.from_bytes(s, "little") & ((1 << (_b - 1)) - 1)
+    # Canonical encoding: the y-coordinate must be reduced modulo q. Reject
+    # non-canonical encodings (y >= q), which strict RFC-8032 verification forbids.
+    if y >= _q:
+        raise ValueError("non-canonical point encoding (y >= q)")
     x = _xrecover(y)
     if x & 1 != _bit(s, _b - 1):
         x = _q - x
@@ -122,13 +126,19 @@ def _decodepoint(s: bytes):
 
 
 def checkvalid(sig: bytes, m: bytes, pk: bytes) -> bool:
-    """True iff `sig` is a valid Ed25519 signature over `m` under public key `pk`."""
+    """True iff `sig` is a STRICT RFC-8032 signature over `m` under `pk`.
+
+    Enforces canonical encodings: the scalar S must satisfy 0 <= S < L (rejecting
+    malleated signatures such as S -> S + L), and both R and A must be canonical
+    curve points. These checks close signature malleability."""
     if len(sig) != _b // 4 or len(pk) != _b // 8:
         return False
     try:
+        S = _decodeint(sig[_b // 8:_b // 4])
+        if S < 0 or S >= _l:                      # strict: reject non-canonical / malleated S
+            return False
         R = _decodepoint(sig[:_b // 8])
         A = _decodepoint(pk)
-        S = _decodeint(sig[_b // 8:_b // 4])
         h = _Hint(_encodepoint(R) + pk + m)
         return _scalarmult(_B, S) == _edwards(R, _scalarmult(A, h))
     except (ValueError, IndexError):
