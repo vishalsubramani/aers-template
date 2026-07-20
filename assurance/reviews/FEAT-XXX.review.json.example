@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "feature_id": "FEAT-XXX",
+  "task_id": "T-002",
+  "candidate_sha": "<the implementer candidate commit sha>",
+  "reviewer_id": "independent-reviewer (MUST differ from author_id in config.json)",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "low",
+      "message": "Example finding. Use severity high|critical to BLOCK the gate until resolved:true.",
+      "evidence": "file:line or a command output proving the finding.",
+      "resolved": true
+    }
+  ],
+  "acceptance_reviewed": ["AC-001", "AC-002"]
+}
