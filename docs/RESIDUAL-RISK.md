@@ -14,6 +14,7 @@ production integration into a `PASS`.
 | RR-06 | **Isolation `PROVEN` depends on the host.** A host without a namespace mechanism cannot reach `PROVEN` locally. | Proof requires a real mechanism. | R2+ fails closed; run on trusted infra that supplies an attestation. Owner: sre. | infra provisioning |
 | RR-07 | **Baseline comparison uses simulated trajectories.** The comparison harness distinguishes simulated from empirical evidence but has no live-model numbers yet. | No live model offline. | Clearly labeled simulated; re-run with a model for empirical numbers. Owner: reviewer. | live-model integration |
 | RR-08 | **Two correlated reviewers can share a blind spot.** | Independence is structural, not perfect. | Evaluator-health monitors reviewer correlation; `THREAT-RUBBER-STAMP` tracks it. Owner: reviewer. | ongoing |
+| RR-09 | **The assurance layer is not yet protected.** `scripts/aers_assure/**`, `scripts/assure.py`, and `assurance/**` are not in `protected-paths.json`/CODEOWNERS/the contract guardrail surfaces, so an autonomous task could in principle be scoped to modify the verifier/assessor and rely on it in the same run. | Adding them is a protected control-plane change that must not be made by the authoring run (ADR-0004); the harness deny-list also blocks it. | Staged patch `docs/proposed-control-plane-change/protect-assurance-layer.patch`; until applied, `assess` reports `CTRL-ASSURANCE-LAYER-PROTECTED` as FAIL (machine-visible). Owner: principal-architect/security. | next control-plane change window |
 
 ## Handling
 

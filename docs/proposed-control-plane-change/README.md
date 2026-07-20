@@ -34,6 +34,22 @@ and recorded rollback.
   whose `independence.context_id` equals the author context.
 - **Rollback:** revert the schema; the base reviewer binding still applies.
 
+### 4. Protect the assurance layer itself (CRITICAL)
+- **Files:** `.agents/policies/protected-paths.json`, `CODEOWNERS`,
+  `scripts/aers/contracts.py`, `.github/workflows/aers-author.yml` (all protected)
+- **Patch:** `protect-assurance-layer.patch`
+- **Why:** `make verify` now executes `scripts/aers_assure/**` and reads
+  `assurance/**`, but those paths are not yet protected. Without this, a task
+  could be granted write scope over the verifier/assessor and then rely on the
+  modified guardrail in the same run — the exact rule AERS forbids. The patch
+  adds `scripts/aers_assure/**`, `scripts/assure.py`, and `assurance/**` to the
+  protected-paths policy, CODEOWNERS, and the `contracts.validate_tasks` guardrail
+  surfaces, and switches the author workflow to run the canonical `make verify`.
+- **Detection until applied:** `assess` reports `CTRL-ASSURANCE-LAYER-PROTECTED`
+  as `FAIL` (RECOMMENDED in Standard, REQUIRED in High Assurance) so the gap is
+  machine-visible, never silent.
+- **Rollback:** revert the patch.
+
 ## Applying
 
 1. Open a dedicated feature/task contract for the control-plane change.

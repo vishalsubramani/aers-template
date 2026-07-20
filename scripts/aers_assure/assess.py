@@ -231,6 +231,18 @@ def _d_exception_handling(c: _Ctx) -> tuple:
     return FAIL, ["docs/RESIDUAL-RISK.md"], "No residual-risk / exception register."
 
 
+def _d_assurance_layer_protected(c: _Ctx) -> tuple:
+    data = c.json(".agents/policies/protected-paths.json")
+    prot = data.get("always_protected", []) if data else []
+    needed = ["scripts/aers_assure/**", "scripts/assure.py", "assurance/**"]
+    missing = [n for n in needed if n not in prot]
+    if not missing:
+        return PASS, [".agents/policies/protected-paths.json", "CODEOWNERS"], "Assurance layer is protected."
+    return FAIL, [".agents/policies/protected-paths.json"], (
+        f"Assurance layer NOT protected ({missing}); a task could modify the verifier/assessor and rely on it "
+        "in the same run. Apply docs/proposed-control-plane-change/.")
+
+
 def _d_retention_redaction(c: _Ctx) -> tuple:
     tel = c.toml.get("telemetry", {})
     if tel.get("redact_by_default") is True and tel.get("capture_content") is False:
@@ -266,6 +278,7 @@ DETECTORS: dict[str, Detector] = {
     "CTRL-POLICY-VERSION-PINNING": _d_policy_pinning,
     "CTRL-EXCEPTION-HANDLING": _d_exception_handling,
     "CTRL-RETENTION-REDACTION": _d_retention_redaction,
+    "CTRL-ASSURANCE-LAYER-PROTECTED": _d_assurance_layer_protected,
 }
 
 

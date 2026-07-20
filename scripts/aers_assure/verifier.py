@@ -104,39 +104,80 @@ def sign_demo(statement: dict[str, Any]) -> dict[str, Any]:
 
 
 # --- Root-pinned trust bundle --------------------------------------------------
-def sign_trust_bundle(keys: dict[str, Any], root_seed: bytes, root_keyid: str) -> dict[str, Any]:
-    """Sign a trust bundle ({production_keys, isolation_keys}) with a ROOT key.
-    Used by a platform operator (and tests); the root private key is not in the repo."""
-    return _sign(BUNDLE_TYPE, {"keys": keys}, root_seed, root_keyid)
+# Production/isolation keys are established ONLY by a trust bundle that is
+# Ed25519-signed by a PINNED ROOT (an internal source constant, never a caller
+# argument), verified through the AUDITED backend, carrying an exact type, a
+# schema version, an expiry, and the intended audience. This closes both the
+# filesystem-path bypass and the caller-argument bypass.
+AUDIENCE = "aers-production-verifier"
 
 
-def load_trust_bundle(path: str | None, pinned_roots: dict[str, str]) -> dict[str, Any]:
-    """Return the bundle's keys ONLY if it is signed by a pinned root; else {}."""
-    if not path or not pinned_roots:
+def sign_trust_bundle(keys: dict[str, Any], root_seed: bytes, root_keyid: str,
+                      expires_at: str = "2999-01-01T00:00:00Z", audience: str = AUDIENCE) -> dict[str, Any]:
+    """Sign a trust bundle with a ROOT key (platform operator / tests only)."""
+    body = {"schema_version": 1, "keys": keys, "audience": audience, "expires_at": expires_at}
+    return _sign(BUNDLE_TYPE, body, root_seed, root_keyid)
+
+
+def validate_trust_bundle(envelope: dict[str, Any], pinned_roots: dict[str, str],
+                          now: datetime, audience: str = AUDIENCE) -> tuple[dict[str, Any], list[str]]:
+    """Validate a trust-bundle envelope: exact BUNDLE_TYPE, root signature via the
+    AUDITED backend, schema version, audience, and expiry. Returns (keys, reasons)."""
+    reasons: list[str] = []
+    if envelope.get("payloadType") != BUNDLE_TYPE:
+        return {}, ["WRONG_BUNDLE_TYPE"]              # DSSE domain separation
+    try:
+        payload = base64.standard_b64decode(envelope["payload"])
+        keyid = envelope["signatures"][0]["keyid"]
+        sig = bytes.fromhex(envelope["signatures"][0]["sig"])
+    except Exception:
+        return {}, ["MALFORMED_BUNDLE"]
+    root_hex = pinned_roots.get(keyid)
+    if root_hex is None:
+        return {}, ["UNKNOWN_ROOT"]
+    if not _verify_sig(sig, _pae(BUNDLE_TYPE, payload), bytes.fromhex(root_hex)):
+        return {}, ["BUNDLE_SIGNATURE_MISMATCH"]      # audited-backend verification
+    try:
+        body = json.loads(payload)
+    except ValueError:
+        return {}, ["MALFORMED_BUNDLE"]
+    if body.get("schema_version") != 1:
+        reasons.append("BUNDLE_SCHEMA")
+    if body.get("audience") != audience:
+        reasons.append("BUNDLE_AUDIENCE")
+    try:
+        if now > datetime.fromisoformat(str(body["expires_at"]).replace("Z", "+00:00")):
+            reasons.append("BUNDLE_EXPIRED")
+    except (KeyError, ValueError):
+        reasons.append("BUNDLE_MISSING_EXPIRY")
+    if reasons:
+        return {}, reasons
+    return body.get("keys", {}) or {}, []
+
+
+def load_trust_bundle(path: str | None, now: datetime | None = None) -> dict[str, Any]:
+    """Return production/isolation keys from a pinned-root-signed bundle, or {}.
+
+    Refuses entirely when no AUDITED signature backend is available — production
+    trust must never be established by the unaudited reference verifier."""
+    if not AUDITED_BACKEND or not path or not _PINNED_ROOT_KEYS:
         return {}
     p = Path(path)
     if not p.exists():
         return {}
     try:
         envelope = load_json(p)
-        payload = base64.standard_b64decode(envelope["payload"])
-        keyid = envelope["signatures"][0]["keyid"]
-        sig = bytes.fromhex(envelope["signatures"][0]["sig"])
     except Exception:
         return {}
-    root_hex = pinned_roots.get(keyid)
-    if root_hex is None:
-        return {}
-    if not ed.checkvalid(sig, _pae(envelope.get("payloadType", BUNDLE_TYPE), payload), bytes.fromhex(root_hex)):
-        return {}
-    return json.loads(payload).get("keys", {})
+    keys, _reasons = validate_trust_bundle(envelope, _PINNED_ROOT_KEYS, now or datetime.now(timezone.utc))
+    return keys
 
 
-def default_trust_store(pinned_roots: dict[str, str] | None = None) -> dict[str, Any]:
-    """Demo keys always; production/isolation keys ONLY from a root-signed bundle."""
-    roots = _PINNED_ROOT_KEYS if pinned_roots is None else pinned_roots
+def default_trust_store() -> dict[str, Any]:
+    """Demo keys always; production/isolation keys ONLY from a pinned-root-signed,
+    audited-backend-verified bundle. No caller argument can introduce trust."""
     store: dict[str, Any] = {"demo_keys": {DEMO_KEY_ID: DEMO_PUBLIC_HEX}, "production_keys": {}, "isolation_keys": {}}
-    bundle = load_trust_bundle(os.environ.get("AERS_TRUST_BUNDLE"), roots)
+    bundle = load_trust_bundle(os.environ.get("AERS_TRUST_BUNDLE"))
     for group in ("production_keys", "isolation_keys"):
         for kid, kh in (bundle.get(group) or {}).items():
             store[group][str(kid)] = str(kh)
@@ -216,18 +257,19 @@ def _now_dt(now_iso: str | None) -> datetime:
 
 
 def verify_attestation(envelope: dict[str, Any], handoff: dict[str, Any],
-                       trust_store: dict[str, Any] | None = None, now_iso: str | None = None,
-                       pinned_roots: dict[str, str] | None = None) -> dict[str, Any]:
+                       trust_store: dict[str, Any] | None = None, now_iso: str | None = None) -> dict[str, Any]:
     """Verify a DSSE/Ed25519 attestation against the immutable handoff. Fail-closed.
 
     `production_valid` is True ONLY when every check below passes AND the signing
-    key is a ROOT-PINNED production key AND an audited signature backend is in use.
-    A caller-supplied trust store is never production authority; a filesystem
-    location is never trust."""
+    key is a ROOT-PINNED production key (established via an audited-backend-verified
+    trust bundle, from the internal pinned-root constant — NOT any caller argument)
+    AND an audited signature backend is in use. A caller-supplied trust store is
+    never production authority; neither a filesystem location nor a function
+    argument can inject a production root."""
     reasons: list[str] = []
     result: dict[str, Any] = {"valid": False, "production_valid": False, "verdict": None, "keyid": None,
                               "trust_domain": None, "backend": BACKEND_NAME, "reasons": reasons}
-    authority = default_trust_store(pinned_roots)              # root-validated production keys
+    authority = default_trust_store()                         # root-validated production keys
     prod_authority = authority["production_keys"]
     vstore = trust_store if trust_store is not None else authority
     verify_keys = {**dict(vstore.get("demo_keys", {})), **dict(vstore.get("production_keys", {})),

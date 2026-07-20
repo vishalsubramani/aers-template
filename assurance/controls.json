@@ -183,6 +183,13 @@
       "remediation": "Record every waiver with owner, scope, and expiry.",
       "blocks": "VERIFIED"
     },
+    "CTRL-ASSURANCE-LAYER-PROTECTED": {
+      "category": "protected paths",
+      "description": "The assurance layer itself (scripts/aers_assure/**, scripts/assure.py, assurance/**) is protected, so a task cannot modify the verifier/assessor and rely on it in the same run.",
+      "evidence_source": ".agents/policies/protected-paths.json + CODEOWNERS",
+      "remediation": "Apply docs/proposed-control-plane-change/ to add scripts/aers_assure/**, scripts/assure.py, and assurance/** to protected-paths.json, CODEOWNERS, and the contract guardrail surfaces.",
+      "blocks": "AUTHOR_READY"
+    },
     "CTRL-RETENTION-REDACTION": {
       "category": "evidence retention",
       "description": "Evidence is retained with default redaction of secrets/PII.",

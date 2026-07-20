@@ -100,27 +100,52 @@ class VerifierTests(unittest.TestCase):
             self.assertFalse(r["production_valid"])
             self.assertIn("UNTRUSTED_CALLER_ROOT", r["reasons"])
 
-    def test_root_pinned_key_recognized_but_reference_backend_denies_production(self):
-        # A trust bundle signed by a PINNED root introduces a production key, and
-        # the attestation is signed by it. The root mechanism recognizes it, but
-        # the pure-Python reference backend must NOT grant production_valid.
-        self.assertFalse(verifier.AUDITED_BACKEND, "test assumes no audited backend in this env")
+    def test_no_caller_argument_can_inject_a_production_root(self):
+        # The public API must expose no way to pass trust roots; production
+        # authority comes only from the internal pinned-root constant.
+        import inspect
+        params = set(inspect.signature(verifier.verify_attestation).parameters)
+        self.assertNotIn("pinned_roots", params)
+        self.assertNotIn("pinned_roots", set(inspect.signature(verifier.default_trust_store).parameters))
+
+    def test_trust_bundle_loader_refuses_without_audited_backend(self):
+        # Production trust must never be established by the unaudited reference
+        # verifier. In this env no audited backend is present, so a valid bundle
+        # still yields no production keys.
+        self.assertFalse(verifier.AUDITED_BACKEND, "test assumes no audited backend here")
         with tempfile.TemporaryDirectory() as td:
-            handoff, _ = self._handoff_and_attest(Path(td))
-            root_seed, prod_seed = bytes(range(1, 33)), bytes(range(40, 72))
-            roots = {"root-1": ed.publickey(root_seed).hex()}
+            root_seed = bytes(range(1, 33))
             bundle = Path(td) / "bundle.json"
             bundle.write_text(json.dumps(verifier.sign_trust_bundle(
-                {"production_keys": {"prod-1": ed.publickey(prod_seed).hex()}}, root_seed, "root-1")), encoding="utf-8")
-            envelope = verifier.make_attestation(handoff, "VERIFIED", ["OK"], "ext",
-                                                 signer_seed=prod_seed, keyid="prod-1", trust_domain="external")
-            os.environ["AERS_TRUST_BUNDLE"] = str(bundle)
-            try:
-                r = verifier.verify_attestation(envelope, handoff, pinned_roots=roots)
-            finally:
-                os.environ.pop("AERS_TRUST_BUNDLE", None)
-            self.assertFalse(r["production_valid"])
-            self.assertIn("REFERENCE_BACKEND_NOT_PRODUCTION", r["reasons"])
+                {"production_keys": {"prod-1": ed.publickey(bytes(range(40, 72))).hex()}}, root_seed, "root-1")),
+                encoding="utf-8")
+            self.assertEqual(verifier.load_trust_bundle(str(bundle)), {})
+
+    def test_trust_bundle_validation_rejects_cross_protocol_and_malformed(self):
+        from datetime import datetime, timezone
+        now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        root_seed = bytes(range(1, 33))
+        roots = {"root-1": ed.publickey(root_seed).hex()}
+        good = verifier.sign_trust_bundle({"production_keys": {"p": "00" * 32}}, root_seed, "root-1")
+        # Valid bundle validates (reference signature is fine for the validator).
+        keys, reasons = verifier.validate_trust_bundle(good, roots, now)
+        self.assertEqual(reasons, [])
+        self.assertIn("p", keys["production_keys"])
+        # Cross-protocol: a non-bundle payload type is refused.
+        wrong_type = dict(good, payloadType="application/vnd.aers.verification+json")
+        self.assertEqual(verifier.validate_trust_bundle(wrong_type, roots, now)[1], ["WRONG_BUNDLE_TYPE"])
+        # Unknown root.
+        self.assertEqual(verifier.validate_trust_bundle(good, {"other": "00" * 32}, now)[1], ["UNKNOWN_ROOT"])
+        # Expired.
+        expired = verifier.sign_trust_bundle({"production_keys": {}}, root_seed, "root-1",
+                                             expires_at="2000-01-01T00:00:00Z")
+        self.assertIn("BUNDLE_EXPIRED", verifier.validate_trust_bundle(expired, roots, now)[1])
+        # Wrong audience.
+        aud = verifier.sign_trust_bundle({"production_keys": {}}, root_seed, "root-1", audience="someone-else")
+        self.assertIn("BUNDLE_AUDIENCE", verifier.validate_trust_bundle(aud, roots, now)[1])
+        # Malformed.
+        self.assertEqual(verifier.validate_trust_bundle({"payloadType": verifier.BUNDLE_TYPE}, roots, now)[1],
+                         ["MALFORMED_BUNDLE"])
 
     def test_every_handoff_field_substitution_is_detected(self):
         with tempfile.TemporaryDirectory() as td:

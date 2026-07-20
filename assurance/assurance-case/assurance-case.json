@@ -19,7 +19,7 @@
         "BENCH-ATT-007"
       ],
       "ci_evidence": "make verify + make assurance",
-      "evidence_digest": "999f99301c6893f7472ccb104f8155d00bef807f09186dfeeb9df5e54726b9bc",
+      "evidence_digest": "01aa6a323780fc31ab5a94e6c38495d8eb4a81a69388ee008cf5e6211fd52016",
       "residual_limitations": "A compromised external verifier key is outside this repository's control."
     },
     {
@@ -40,7 +40,7 @@
         "BENCH-ATT-006"
       ],
       "ci_evidence": "make verify",
-      "evidence_digest": "84531ec9356d9e94ddb00adb62031b51042e23cd83598b9b440b77024a8e1c54",
+      "evidence_digest": "6ceb077a5ca1422501fd2d9e0316ff3530c66463899f3608393450cead4812b5",
       "residual_limitations": "Freshness relies on the relying party's trusted clock."
     },
     {
