@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AERS immutable candidate handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "repo_identity", "candidate_sha", "source_tree_digest",
+    "feature_id", "task_id", "feature_contract_digest", "task_contract_digest",
+    "policy_digest", "author_evidence_digest", "requested_profile", "created_at", "handoff_digest"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "repo_identity": {"type": "string"},
+    "candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{7,64}$"},
+    "source_tree_digest": {"type": "string"},
+    "feature_id": {"type": "string"},
+    "task_id": {"type": "string"},
+    "feature_contract_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "task_contract_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "policy_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "author_evidence_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "requested_profile": {"enum": ["lite", "standard", "high-assurance", "regulated"]},
+    "created_at": {"type": "string"},
+    "handoff_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

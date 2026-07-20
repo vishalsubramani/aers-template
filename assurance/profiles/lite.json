@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "profile_id": "lite",
+  "name": "AERS Lite",
+  "version": "1.0.0",
+  "description": "Minimum viable guardrails for a small repository: stable commands, exact write scope, protected paths, static checks, tests, and a deterministic audit. No external verifier or private holdouts required.",
+  "supersedes": null,
+  "controls": {
+    "CTRL-STABLE-COMMANDS": "REQUIRED",
+    "CTRL-SCOPE-ENFORCEMENT": "REQUIRED",
+    "CTRL-PROTECTED-PATHS": "REQUIRED",
+    "CTRL-STATIC-CHECKS": "REQUIRED",
+    "CTRL-TEST-SUITE": "REQUIRED",
+    "CTRL-DETERMINISTIC-AUDIT": "REQUIRED",
+    "CTRL-CONTRACT-INTEGRITY": "RECOMMENDED",
+    "CTRL-DIFFERENTIAL-TEST": "OPTIONAL",
+    "CTRL-REVIEWER-INDEPENDENCE": "OPTIONAL",
+    "CTRL-SECOND-REVIEWER-R2": "OPTIONAL",
+    "CTRL-MEMORY-GOVERNANCE": "OPTIONAL",
+    "CTRL-ISOLATION": "OPTIONAL",
+    "CTRL-EXTERNAL-VERIFIER": "NOT_APPLICABLE",
+    "CTRL-PRIVATE-ORACLE": "NOT_APPLICABLE",
+    "CTRL-ATTESTATION": "NOT_APPLICABLE",
+    "CTRL-SIGNED-PROVENANCE": "NOT_APPLICABLE",
+    "CTRL-RELEASE-SEGREGATION": "NOT_APPLICABLE",
+    "CTRL-EVALUATOR-HEALTH": "OPTIONAL",
+    "CTRL-DEPENDENCY-GOVERNANCE": "RECOMMENDED",
+    "CTRL-ROLLBACK": "RECOMMENDED",
+    "CTRL-OBSERVABILITY": "OPTIONAL",
+    "CTRL-EVIDENCE-RETENTION": "OPTIONAL",
+    "CTRL-ASSURANCE-LAYER-PROTECTED": "OPTIONAL"
+  }
+}

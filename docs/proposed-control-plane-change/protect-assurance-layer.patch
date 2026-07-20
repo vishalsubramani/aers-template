@@ -1,0 +1,43 @@
+--- a/.agents/policies/protected-paths.json
++++ b/.agents/policies/protected-paths.json
+@@
+     "scripts/aers/**",
+     "scripts/aers.py",
+     "scripts/loop.py",
+     "scripts/run_ready.py",
++    "scripts/aers_assure/**",
++    "scripts/assure.py",
++    "assurance/**",
+     "evals/**"
+   ],
+
+--- a/CODEOWNERS
++++ b/CODEOWNERS
+@@
+ /scripts/aers/                          @org/agent-platform @org/security
+ /scripts/aers.py                        @org/agent-platform @org/security
+ /scripts/loop.py                        @org/agent-platform @org/security
+ /scripts/run_ready.py                   @org/agent-platform @org/security
++/scripts/aers_assure/                   @org/agent-platform @org/security
++/scripts/assure.py                      @org/agent-platform @org/security
++/assurance/                             @org/agent-platform @org/security
+ /aers.toml                              @org/agent-platform @org/security
+
+--- a/scripts/aers/contracts.py
++++ b/scripts/aers/contracts.py
+@@
+-                              for g in [".agents/policies", ".agents/schemas", ".agents/trusted", ".claude/hooks"]):
++                              for g in [".agents/policies", ".agents/schemas", ".agents/trusted", ".claude/hooks",
++                                        "scripts/aers_assure", "assurance"]):
+                 raise ValueError(f"Task {task['id']} write_scope '{glob}' reaches a guardrail-defining surface; that is a human control-plane change, not an autonomous task")
+
+--- a/.github/workflows/aers-author.yml
++++ b/.github/workflows/aers-author.yml
+@@
+-      - run: make check
+-      - run: make test
+-      - run: make security
+-      - run: make evals
++      # Run the canonical aggregate so CI proves the exact stable verification
++      # command (including the assurance layer) succeeds.
++      - run: make verify

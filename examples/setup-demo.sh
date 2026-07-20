@@ -9,7 +9,7 @@ KIT="$(cd "$(dirname "$0")/.." && pwd)"
 mkdir -p "$TARGET"
 # Kit files — copy only the known control-plane surfaces, never the whole host
 # tree (which could include an adopter's unrelated, lint-breaking files).
-KIT_PATHS=(.agents .specify .claude .github agent_docs docs evals scripts tests examples \
+KIT_PATHS=(.agents .specify .claude .github agent_docs docs evals scripts tests examples assurance \
            AGENTS.md CLAUDE.md GEMINI.md README.md TUTORIAL.md CONTRIBUTING.md MISSION.md \
            SECURITY.md CODEOWNERS Makefile aers.toml pyproject.toml .gitignore install.sh)
 present=()

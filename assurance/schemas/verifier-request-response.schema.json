@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AERS verifier request and response",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "handoff", "requested_profile"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "handoff": {"$ref": "verifier-handoff.schema.json"},
+        "requested_profile": {"enum": ["lite", "standard", "high-assurance", "regulated"]},
+        "fetch_hint": {"type": "string", "description": "how the verifier fetches the immutable candidate by digest"}
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "verdict", "candidate_digest", "policy_digest", "evidence_digest", "verifier_identity", "timestamp", "reason_codes", "attestation"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "verdict": {"enum": ["VERIFIED", "REJECTED", "INFRASTRUCTURE_ERROR"]},
+        "candidate_digest": {"type": "string"},
+        "policy_digest": {"type": "string"},
+        "evidence_digest": {"type": "string"},
+        "verifier_identity": {"type": "string"},
+        "timestamp": {"type": "string"},
+        "expires_at": {"type": "string"},
+        "reason_codes": {"type": "array", "items": {"type": "string"}},
+        "attestation": {"$ref": "verifier-attestation.schema.json"}
+      }
+    }
+  }
+}

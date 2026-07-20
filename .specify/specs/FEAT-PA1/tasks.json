@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "feature_id": "FEAT-PA1",
+  "tasks": [
+    {
+      "id": "T-001",
+      "title": "Author the assurance-layer self-tests (failure paths included)",
+      "role": "test_author",
+      "depends_on": [],
+      "write_scope": ["tests/**"],
+      "acceptance": ["AC-EXT-VERIFIER", "AC-ASSESS", "AC-ASSURANCE", "AC-ISOLATION", "AC-THREAT", "AC-HEALTH", "AC-MIGRATE"],
+      "commands": [
+        {"name": "self-tests run", "argv": ["python3", "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"], "timeout_seconds": 300, "network": "deny"}
+      ],
+      "budget": {"max_attempts": 3, "max_files": 8, "max_lines": 900, "max_seconds": 1800},
+      "notes": "Every security control is tested through at least one failure path."
+    },
+    {
+      "id": "T-002",
+      "title": "Implement the assurance engine (verifier, benchmark, assess, assurance, isolation, threats, health, evidence, migrate)",
+      "role": "implementer",
+      "depends_on": ["T-001"],
+      "write_scope": ["scripts/aers_assure/**", "scripts/assure.py"],
+      "acceptance": ["AC-EXT-VERIFIER", "AC-BENCHMARK", "AC-ASSESS", "AC-ASSURANCE", "AC-ISOLATION", "AC-THREAT", "AC-HEALTH", "AC-MIGRATE"],
+      "commands": [
+        {"name": "benchmark green", "argv": ["python3", "scripts/assure.py", "benchmark"], "timeout_seconds": 300, "network": "deny"},
+        {"name": "assurance green", "argv": ["python3", "scripts/assure.py", "assurance"], "timeout_seconds": 120, "network": "deny"}
+      ],
+      "budget": {"max_attempts": 3, "max_files": 15, "max_lines": 1500, "max_seconds": 1800},
+      "notes": "Additive package outside the protected control-plane surface; reuses the engine read-only."
+    },
+    {
+      "id": "T-003",
+      "title": "Author profiles, control catalog, benchmark cases, threat model, assurance case, health cases",
+      "role": "implementer",
+      "depends_on": ["T-002"],
+      "write_scope": ["assurance/**"],
+      "acceptance": ["AC-BENCHMARK", "AC-ASSESS", "AC-ASSURANCE", "AC-THREAT", "AC-HEALTH"],
+      "commands": [
+        {"name": "threat model valid", "argv": ["python3", "scripts/assure.py", "threat-model"], "timeout_seconds": 60, "network": "deny"}
+      ],
+      "budget": {"max_attempts": 3, "max_files": 15, "max_lines": 1500, "max_seconds": 1200},
+      "notes": "Machine-readable data: profiles, controls, benchmark cases, threat matrix, assurance claims."
+    },
+    {
+      "id": "T-004",
+      "title": "Document adoption, migration, threat model, residual risk, and ADRs",
+      "role": "documentation",
+      "depends_on": ["T-002", "T-003"],
+      "write_scope": ["docs/**", "README.md", "TUTORIAL.md", "**/*.md"],
+      "acceptance": ["AC-ASSESS", "AC-MIGRATE"],
+      "commands": [
+        {"name": "control-plane lint", "argv": ["python3", "scripts/aers.py", "lint"], "timeout_seconds": 60, "network": "deny"}
+      ],
+      "budget": {"max_attempts": 3, "max_files": 20, "max_lines": 2000, "max_seconds": 1200},
+      "notes": "Documentation only; ADRs record the additive-layer and dogfooding decisions."
+    }
+  ]
+}
