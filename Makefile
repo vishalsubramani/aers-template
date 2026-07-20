@@ -1,4 +1,4 @@
-.PHONY: bootstrap check test security evals verify aers-lint \
+.PHONY: bootstrap check test security evals verify aers-lint review-gate \
         benchmark assess assurance threat-model evaluator-health baseline assure evidence-manifest
 
 bootstrap:
@@ -7,7 +7,13 @@ bootstrap:
 aers-lint:
 	python3 scripts/aers.py lint
 
-check: aers-lint
+# Fail-closed independent-review evidence gate (additive; author-side). Requires a
+# candidate-bound independent review for every approved feature at a required risk
+# tier. Closes the "implemented outside loop.py, still merged" hole.
+review-gate:
+	python3 scripts/checks/independent_review_gate.py
+
+check: aers-lint review-gate
 	@echo "Add formatter, linter, type, schema, and architecture checks."
 
 test:

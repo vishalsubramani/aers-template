@@ -1,0 +1,6 @@
+{
+  "author_id": "primary-implementer",
+  "required_risk_tiers": ["R2"],
+  "exclude_features": ["FEAT-PA1"],
+  "_note": "The independent-review evidence gate (scripts/checks/independent_review_gate.py, wired into `make check`) requires every approved feature at these risk tiers to carry assurance/reviews/<FEAT>.review.json bound to a real candidate commit, verdict=pass, all acceptance reviewed, reviewer_id != author_id. exclude_features skips non-product scaffolding; the shipped FEAT-PA1 is the kit's own example pack. The gate logs every exclusion loudly so it can never silently hide a real feature."
+}
