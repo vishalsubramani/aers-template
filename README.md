@@ -95,6 +95,13 @@ instead of lowering a gate to finish.
   network isolation
 - **Differential test gate** — new tests must *fail* on the base commit, so
   test-first work is proven discriminating, not decorative
+- **Decision log + fail-closed gate** — every gated feature carries a
+  vendor-neutral, append-only JSONL record of the decision points, assumptions,
+  and trade-offs the agent made (`agent_docs/decision-log.md`); the gate in
+  `make check` refuses gated features without it, and risky entries (one-way,
+  low-confidence, flagged assumptions) stay red until a named human validates
+  or counters them in the record — humans review the judgment, not every
+  generated line (`docs/decision-log-gate.md`)
 - **Deterministic audit + independent review** — trajectory and diff audit
   before any model-based reviewer; reviewer reports are schema-bound to the
   candidate SHA (no grep-accepted prose)

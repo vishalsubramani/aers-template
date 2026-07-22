@@ -50,6 +50,19 @@ and recorded rollback.
   machine-visible, never silent.
 - **Rollback:** revert the patch.
 
+### 5. Bind the grounding library and decision log into the always-loaded contract
+- **Files:** `AGENTS.md`, `.agents/roles/architect.md`, `.agents/roles/implementer.md`,
+  `.agents/doctrine/README.md` (all protected)
+- **Patch:** `decision-log-and-grounding.patch`
+- **Why:** the grounding library (`agent_docs/grounding/`) and the decision log
+  (`agent_docs/decision-log.md`, enforced by `scripts/checks/decision_log_gate.py` in
+  `make check`) currently bind only through the generic "read relevant `agent_docs/`"
+  instruction and through gate-failure messages. This patch names them in the read-first
+  list, the required workflow, and the architect/implementer missions, so every vendor's
+  agent learns the obligation from the contract, not from a red gate.
+- **Rollback:** revert the patch; the gate and library remain functional but
+  discovery-only.
+
 ## Applying
 
 1. Open a dedicated feature/task contract for the control-plane change.

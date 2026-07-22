@@ -1,4 +1,4 @@
-.PHONY: bootstrap check test security evals verify aers-lint review-gate \
+.PHONY: bootstrap check test security evals verify aers-lint review-gate decision-gate \
         benchmark assess assurance threat-model evaluator-health baseline assure evidence-manifest
 
 bootstrap:
@@ -13,7 +13,14 @@ aers-lint:
 review-gate:
 	python3 scripts/checks/independent_review_gate.py
 
-check: aers-lint review-gate
+# Fail-closed decision-log gate (additive; author-side). Every gated feature must
+# carry the vendor-neutral record of decision points, assumptions, and trade-offs
+# (agent_docs/decision-log.md); risky entries require human validation. This is the
+# control-plane artifact humans review instead of every generated line.
+decision-gate:
+	python3 scripts/checks/decision_log_gate.py
+
+check: aers-lint review-gate decision-gate
 	@echo "Add formatter, linter, type, schema, and architecture checks."
 
 test:

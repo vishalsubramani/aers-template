@@ -1,0 +1,71 @@
+# Decision-log gate
+
+Additive, author-side hardening that makes the **record of agent judgment** — decision
+points, assumptions, trade-offs — an unskippable, reviewable artifact of every gated
+feature, regardless of which vendor's agent (Claude, Codex, Gemini, a human) produced the
+work.
+
+## Why
+
+Humans do not read every line of AI-generated code, and pretending otherwise makes review
+theater. What a human *can* review is the control plane: which forks the agent hit, what it
+assumed when the spec was silent, what it traded away, and how confident it was. Today that
+record exists only as ADRs (deliberately few) and evaporating PR comments. Everything
+between — the dozens of implementation-level judgments per feature — is invisible unless
+someone re-derives it from the diff.
+
+The decision log (`agent_docs/decision-log.md`) fixes the artifact; this gate makes its
+absence impossible to miss. The design goal: **put the human back in the control seat**
+through the decisions and the philosophy used to make them, not through line-by-line
+reading.
+
+## What it does
+
+`scripts/checks/decision_log_gate.py` runs on every `make check` (and thus in CI),
+fail-closed:
+
+- Every **approved** feature whose `risk_tier` is in `required_risk_tiers` must carry
+  `.specify/specs/<FEAT>/decision-log.jsonl` with at least one schema-valid entry.
+- Every decision-log line in the repository (feature packs and `docs/decisions/`) must
+  validate: required fields, enums, unique ids, doctrine refs well-formed (`AX-/DD-/PAT-/
+  DF-`), deviation entries naming their accepted ADR.
+- For gated features, **risky entries demand a human**: reversibility `one-way`, confidence
+  `low`, or any assumption flagged `needs_human_validation` must be `validated` or
+  `countered`, with `validated_by` set to a human id that is **not** the configured agent
+  `author_id`. A countered entry must carry a `follow_up`. CI stays red until the human
+  acts — that is the mechanism working.
+
+Config is shared with the independent-review gate (`assurance/reviews/config.json`:
+`author_id`, `required_risk_tiers`, `exclude_features`) so one policy governs both
+artifacts. Exclusions are logged loudly, never silent.
+
+## How it composes with the existing controls
+
+- The **independent-review gate** proves a second set of eyes judged the *outcome*; this
+  gate preserves the *reasoning* those eyes (and the human) judged. One without the other
+  is either unexplained approval or unexamined explanation.
+- The **PR template** front-loads the log: reviewers are pointed at the new log lines in
+  the diff before the code, with a checkbox attesting each assumption was validated or
+  countered.
+- **ADR discipline** is unchanged: an entry never authorizes deviation; `deviation-adr`
+  entries must point at an accepted ADR, and load-bearing entries get promoted.
+- Like every author-side control, this proves process, not truth. The boundary remains
+  human review, CODEOWNERS, and branch protection. An agent can write a self-serving log;
+  it cannot write an *absent* one, and the risky subset cannot merge without a named
+  human's hand.
+
+## Reviewing a PR through the log
+
+1. Open the diff of `decision-log.jsonl` — the new lines are this PR's judgment.
+2. For each: is the context real, are the rejected options fairly stated, is the trade-off
+   acceptable, is the assumption true?
+3. Agree → set `human_status: "validated"`, `validated_by: "<you>"`.
+   Disagree → set `"countered"` plus a `follow_up` (fix task, ADR, or constraint), and the
+   correction lives in the record every future agent reads — not in a comment thread that
+   evaporates.
+
+## Format
+
+See `agent_docs/decision-log.md` for the entry schema, writing discipline, and the full
+review protocol; `examples/feature-pack/FEAT-001/decision-log.jsonl` shows the artifact;
+`docs/decisions/` holds logs for non-feature work (including this kit's own).
