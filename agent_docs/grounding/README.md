@@ -42,15 +42,15 @@ named in the plan instead of discovered in production.
 | Pick a pattern, architectural style, or service split; model a domain | `02-patterns-and-architecture.md` |
 | Write or review code, name things, structure commits/branches, design tests | `03-writing-code.md` |
 | Design a schema, query, index, transaction, or migration | `04-data-storage.md` |
-| Replicate, shard, cache, or move data between stores; add analytics or search | `05-data-scale.md` |
+| Replicate, shard, cache, or move data between stores; add analytics or search | `05-data-scale.md` (for a cache, its caching section + `08`) |
 | Add a queue, event, stream, or background job | `06-messaging-and-events.md` |
 | Span more than one node/region; reason about consistency, consensus, or time | `07-distributed-systems-theory.md` |
 | Call anything remote; design for failure, overload, or disaster recovery | `08-resilience.md` |
 | Touch threads, async, memory, processes, signals, or the OS boundary | `09-runtime.md` |
 | Set latency/throughput targets; scale, load-test, or optimize | `10-performance-and-scale.md` |
-| Cross the network: DNS, TCP/TLS, HTTP, proxies, load balancers, CDNs, browsers | `11-networking-and-web.md` |
+| Cross the network: DNS, TCP/TLS, HTTP, proxies, load balancers, CDNs, browsers; consume webhooks (signatures, replay, dedup) | `11-networking-and-web.md` |
 | Build UI: components, state, rendering, a11y, i18n, web performance | `12-frontend.md` |
-| Design or evolve an API, webhook, or wire contract | `13-apis-and-contracts.md` |
+| Design or evolve an API or wire contract; expose webhooks (consuming them is `11`) | `13-apis-and-contracts.md` |
 | Provision cloud/infra, containerize, orchestrate, ship through CI/CD or IaC | `14-infrastructure-and-delivery.md` |
 | Add telemetry, alerts, SLOs; prepare for on-call and incidents | `15-observability-and-operations.md` |
 | Handle untrusted input, authn/authz, secrets, crypto, or sensitive data | `16-security.md` |
@@ -60,7 +60,17 @@ named in the plan instead of discovered in production.
 | Plan delivery, team process, docs, migrations, deprecations | `20-process-and-laws.md` |
 
 Cross-cutting decisions load the intersection: e.g. "add a Redis cache" → `05-data-scale.md`
-+ `08-resilience.md`; "new public endpoint" → `13-apis-and-contracts.md` + `16-security.md`.
+(caching section) + `08-resilience.md`; "new public endpoint" → `13-apis-and-contracts.md` +
+`16-security.md`; "consume a Stripe webhook" → `11-networking-and-web.md` (webhooks) +
+`13-apis-and-contracts.md` (idempotency keys).
+
+Two rules keep this honest:
+
+- **Broad file, narrow decision:** read the section whose heading matches the decision, not
+  the whole file — the section headings exist for exactly this.
+- **More than three rows fire:** the work is feature-sized, not decision-sized. Split the
+  design into its constituent decisions (data shape, API surface, async flow, …) and load
+  per decision as you reach it — never all files at once.
 
 ## File anatomy
 
