@@ -49,7 +49,7 @@ PAT-07, PAT-09, PAT-10, PAT-20, DF-01, DF-02, DF-03, DF-06
 - **Chatty vs chunky APIs** — N+1 round trips over a network dwarf compute; design boundary calls
   to fetch what one interaction needs in few exchanges *(AX-06, PAT-10)*.
 - **N+1 queries** — the database edition of chatty: hunt for per-item queries in any
-  list-rendering or ORM path; detection and fixes live in 04-data-storage *(PAT-03)*.
+  list-rendering or ORM path; detection and fixes live in `04-data-storage.md` *(PAT-03)*.
 - **Serialization cost (JSON vs binary)** — parse/encode can dominate hot-path CPU; measure before
   swapping formats, and treat the format as a versioned contract, not an optimization knob *(AX-18, DD-02)*.
 - **Compression tradeoffs** — trades CPU for bytes on the wire; wins on slow links and big
@@ -61,7 +61,7 @@ PAT-07, PAT-09, PAT-10, PAT-20, DF-01, DF-02, DF-03, DF-06
 - **Benchmark pitfalls** — warmup (JIT/caches), dead-code elimination of unused results, and
   unrealistically uniform data all fabricate wins; benchmark with production-shaped data and sinks.
 - **Connection pooling** — per-request TCP/TLS/DB handshakes destroy latency and exhaust server
-  resources; pool with bounded size — sizing math and exhaustion gotchas live in 04-data-storage
+  resources; pool with bounded size — sizing math and exhaustion gotchas live in `04-data-storage.md`
   *(AX-09)*.
 
 ## Scaling out

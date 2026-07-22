@@ -88,7 +88,7 @@ PAT-02, PAT-03, PAT-05..PAT-07, PAT-11..PAT-14, PAT-17, PAT-20, DF-01..DF-06
   use only when operations vary faster than types — sum types with pattern matching often
   supersede it *(AX-08)*.
 
-### Honorable additions
+### Other classic patterns
 
 - **Object Pool** — only for genuinely expensive resources (connections, threads), with a
   measurement otherwise *(AX-18)*; reset state on return or leak data across borrowers.

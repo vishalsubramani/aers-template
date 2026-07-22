@@ -48,7 +48,7 @@ DF-05, DF-06
 - **Sharding** — the **key choice** is near-irreversible: pick for even spread and single-shard
   queries; plan **resharding** (consistent hashing, split/merge) day one; expect **hot shards**
   and treat **cross-shard queries**/transactions as designs to avoid *(DD-16, AX-18)*.
-- **CQRS read models** — the pattern trade-off lives in 02-patterns-and-architecture; here, the
+- **CQRS read models** — the pattern trade-off lives in `02-patterns-and-architecture.md`; here, the
   read side is a rebuildable projection that lags — state its staleness bound and rebuild path
   *(DF-02, DD-17)*.
 - **Materialized views** — the cheapest read model: precomputed inside the same database with a

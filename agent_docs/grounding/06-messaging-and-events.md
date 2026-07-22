@@ -115,7 +115,7 @@ DF-03, DF-04, DF-05, DF-06
 - **Consumer lag as an SLI** — lag and DLQ depth are the primary health signals of an async
   system; alert on them against stated SLOs, because "the queue is up" says nothing about
   staleness *(AX-14, AX-22)*.
-- **Change data capture (CDC)** — owned by 05-data-scale; the messaging-side gotcha: emitted
+- **Change data capture (CDC)** — owned by `05-data-scale.md`; the messaging-side gotcha: emitted
   events publish your table shape as a contract — interpose a translation layer *(DD-02,
   PAT-12)*.
 - **Message envelope & trace propagation** — carry correlation/trace IDs, event time, schema
