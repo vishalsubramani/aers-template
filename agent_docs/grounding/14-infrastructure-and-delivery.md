@@ -1,4 +1,4 @@
-# Grounding — Infrastructure & delivery — cloud, containers, CI/CD, IaC
+# Grounding — Infrastructure & delivery: cloud, containers, CI/CD, IaC
 
 Part of the grounding library (`agent_docs/grounding/README.md`). Doctrine and ADRs are law;
 this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
@@ -6,8 +6,9 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 **Load when:** provisioning cloud resources or networks, writing Dockerfiles or Kubernetes
 manifests, designing CI/CD pipelines, planning a rollout/rollback or feature-flag strategy,
 authoring Terraform/IaC, or deciding managed vs self-hosted.
-**Doctrine hooks:** AX-01, AX-06, AX-09, AX-13, AX-14, AX-15, AX-18, AX-20, AX-21, AX-22,
-DD-10, DD-11, DD-15, PAT-02, PAT-05, PAT-14, PAT-15, PAT-16, PAT-18, PAT-20, DF-04, DF-06
+**Doctrine hooks:** AX-01, AX-06, AX-09, AX-10, AX-13, AX-14, AX-15, AX-16, AX-17, AX-18, AX-20,
+AX-21, AX-22, DD-10, DD-11, DD-15, PAT-02, PAT-05, PAT-14, PAT-15, PAT-16, PAT-18, PAT-20, DF-04,
+DF-06
 
 ## Design checklist
 
@@ -171,8 +172,8 @@ DD-10, DD-11, DD-15, PAT-02, PAT-05, PAT-14, PAT-15, PAT-16, PAT-18, PAT-20, DF-
 - **Test sharding & parallelism in CI** — shard by measured timing, not file count;
   parallel runs expose shared-state assumptions (ports, databases, fixtures) — isolate
   resources per shard *(AX-16)*.
-- **Merge queues** — post-approval merges test against stale main; a merge queue tests the
-  actual merged state, preventing semantic-conflict breakage on busy repos.
+- **Merge queues** — covered in `03-writing-code.md`; the pipeline-side move is making the
+  queue's post-merge test the required check, so semantic conflicts never reach main.
 - **Ephemeral preview environments** — per-PR environments catch integration issues before
   merge; enforce TTLs, teardown, and seeded data or they become expensive snowflakes.
 - **Environment parity (dev/stage/prod)** — most "worked in staging" failures are parity
@@ -192,9 +193,9 @@ DD-10, DD-11, DD-15, PAT-02, PAT-05, PAT-14, PAT-15, PAT-16, PAT-18, PAT-20, DF-
 - **Rollbacks vs roll-forward** — rollback is only real if data changes are backward
   compatible; a deploy paired with a one-way migration has no rollback — the plan must say
   so *(AX-15, DD-10)*.
-- **Expand–contract sequencing with deploys** — the expand migration ships before code that
-  depends on it; contract only after all consumers migrate and the rollback window closes
-  *(DD-11)*.
+- **Expand–contract sequencing with deploys** — the deploy-order half of `04-data-storage.md`'s
+  expand→migrate→contract: expand ships before dependent code; contract only after all consumers
+  migrate and the rollback window closes *(DD-11)*.
 - **Feature flag taxonomy: release / ops / experiment / permission** — each kind has a
   different lifetime and owner; conflating them is how "temporary" flags become permanent
   unowned config *(PAT-14)*.
@@ -221,11 +222,12 @@ DD-10, DD-11, DD-15, PAT-02, PAT-05, PAT-14, PAT-15, PAT-16, PAT-18, PAT-20, DF-
 - **Declarative vs imperative provisioning** — declarative desired-state is the default;
   imperative scripts drift immediately and cannot be plan-reviewed. Console changes are
   incidents-in-waiting.
-- **Terraform: state, locking, drift detection, plan review, modules, workspaces** — remote
-  state with locking is non-negotiable; every apply follows a reviewed plan — a `-/+`
-  destroy-and-recreate on a stateful resource is data loss in disguise. Pin module
-  versions; use workspaces only for small config deltas, separate roots for divergent
-  environments *(AX-17)*.
+- **Terraform: state, locking, drift detection, plan review** — remote state with locking is
+  non-negotiable; every apply follows a reviewed plan — a `-/+` destroy-and-recreate on a
+  stateful resource is data loss in disguise.
+- **Terraform modules & workspaces** — pin module versions; use workspaces only for small
+  config deltas and separate roots for divergent environments, or one plan's blast radius
+  spans them all *(AX-17)*.
 - **State security** — state files hold secrets in plaintext (passwords, keys); encrypt
   state at rest, restrict access like a secret store, never commit it *(PAT-18)*.
 - **Importing existing resources** — import before managing, or the first apply tries to

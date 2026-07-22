@@ -4,7 +4,8 @@ Part of the grounding library (`agent_docs/grounding/README.md`). Doctrine and A
 this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 
 **Load when:** designing or reviewing any external interface — HTTP/gRPC/GraphQL endpoints, SDKs,
-error shapes, pagination, versioning, or deprecation decisions.
+error shapes, pagination, versioning, or deprecation decisions. Consuming a third-party webhook
+(signatures, replay, idempotent handlers) is covered in `11-networking-and-web.md`.
 **Doctrine hooks:** AX-05, AX-06, AX-09, AX-10, AX-11, AX-16, DD-02, DD-13, PAT-01, PAT-04,
 PAT-06, PAT-10, PAT-20
 

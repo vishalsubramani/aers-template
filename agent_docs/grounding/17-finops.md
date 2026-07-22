@@ -4,9 +4,10 @@ Part of the grounding library (`agent_docs/grounding/README.md`). Doctrine and A
 this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 
 **Load when:** choosing compute/storage/managed services, designing scaling or multi-tenant
-capacity, reviewing plans with cloud spend impact, sizing observability, or costing LLM/GPU workloads
-**Doctrine hooks:** AX-09, AX-14, AX-18, AX-20, AX-21, AX-22, DD-15, DD-17, PAT-07, PAT-09,
-PAT-13, PAT-20, DF-01, DF-04, DF-06
+capacity, reviewing plans with cloud spend impact, sizing observability, or costing LLM/GPU
+workloads.
+**Doctrine hooks:** AX-09, AX-12, AX-14, AX-18, AX-20, AX-22, DD-15, DD-16, PAT-07, PAT-13, PAT-20,
+DF-04, DF-06
 
 ## Design checklist
 
@@ -75,7 +76,7 @@ PAT-13, PAT-20, DF-01, DF-04, DF-06
 
 - **Egress, cross-AZ, and NAT costs** — data transfer is priced by path: chatty cross-AZ calls,
   NAT-routed traffic to object stores (use gateway endpoints), and egress-heavy designs need
-  pricing in the plan *(DF-01)*.
+  pricing in the plan *(AX-18)*.
 - **Storage lifecycle & tiering** — decide tiering and expiry when the data is introduced
   *(DD-15)*; hot-tier-forever is what not deciding buys you, and retrieval fees can flip
   cold-tier math.
@@ -101,6 +102,10 @@ PAT-13, PAT-20, DF-01, DF-04, DF-06
   rates *(AX-14)*.
 - **Billing-data lag** — cost dashboards trail reality by 24–48 hours; the real-time defense is
   quotas and hard caps in the architecture, not the anomaly alert.
-- **The FinOps loop (inform → optimize → operate)** — cost work is a cycle, not a project:
-  visibility first, then targeted optimization with measured savings *(AX-18)*, then
-  automation and policy so savings persist.
+- **Race-safe spend caps (reserve-then-settle)** — enforce per-tenant caps with an atomic budget
+  decrement: reserve the estimated cost before the call, settle actual cost after; read-then-check
+  against lagging billing data lets concurrent requests blow the cap — LLM token costs settle late
+  (`18-ai-llm-engineering.md`) *(AX-12, DD-16)*.
+- **The FinOps loop (inform → optimize → operate)** — never skip the operate phase: an
+  optimization lands with its measured saving *(AX-18)* plus the policy or automation that keeps
+  it from regressing, or the next quarter's bill undoes it silently.

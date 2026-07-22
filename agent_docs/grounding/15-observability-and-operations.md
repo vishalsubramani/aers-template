@@ -5,8 +5,8 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 
 **Load when:** specifying a feature's telemetry (AX-14), designing dashboards or alerts, setting
 SLIs/SLOs, planning on-call/runbooks, reviewing incident response, or pricing telemetry cost.
-**Doctrine hooks:** AX-09, AX-13, AX-14, AX-15, AX-18, AX-22, DD-14, DD-15, DD-18, PAT-05,
-PAT-13, PAT-14, PAT-15, PAT-20, DF-06
+**Doctrine hooks:** AX-01, AX-09, AX-14, AX-15, AX-18, AX-22, DD-14, DD-15, DD-18, PAT-13, PAT-14,
+DF-06
 
 ## Design checklist
 
@@ -107,10 +107,9 @@ PAT-13, PAT-14, PAT-15, PAT-20, DF-06
   everyone-debugging-nobody-deciding failure.
 - **MTTD / MTTR limits** — averages hide the tail incident and invite gaming; use them for
   trends, never as individual targets, and pair with incident narratives.
-- **Incidents as learning opportunities** — the incident already paid its cost; extracting
-  systemic fixes is the only return. A quiet system may be lucky, not safe.
-- **Blameless postmortems; contributing factors** — hunt contributing factors, not a single root
-  cause or a person; blame teaches people to hide the information the next incident needs.
+- **Incidents as learning opportunities; blameless postmortems; contributing factors** — the
+  incident already paid its cost, so extract the systemic fixes: hunt contributing factors, not
+  a single root cause or a person — blame teaches people to hide what the next incident needs.
 - **Action items that actually ship** — postmortem items go into the tracked backlog with owners
   and due dates, and get reviewed; unshipped action items are how the same incident recurs.
 - **Game days & DR drills** — exercise failure paths (failover, restore, region loss) on a

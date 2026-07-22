@@ -4,31 +4,31 @@ Part of the grounding library (`agent_docs/grounding/README.md`). Doctrine and A
 this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 
 **Load when:** designing or reviewing anything that calls an LLM — prompts, RAG pipelines, agent
-tools, evals, model selection or routing, streaming endpoints, or LLM cost/observability work
-**Doctrine hooks:** AX-06, AX-08, AX-09, AX-11, AX-13, AX-14, AX-15, AX-16, AX-18, AX-21, PAT-01,
-PAT-05, PAT-08, PAT-09, PAT-13, PAT-17, PAT-20, DD-14, DD-17, DF-02, DF-04
+tools, evals, model selection or routing, streaming endpoints, or LLM cost/observability work.
+**Doctrine hooks:** AX-05, AX-06, AX-08, AX-09, AX-11, AX-13, AX-14, AX-15, AX-16, AX-17, AX-18,
+AX-21, DD-14, DD-17, PAT-01, PAT-05, PAT-08, PAT-09, PAT-13, PAT-17, PAT-20, DF-02, DF-04
 
 ## Design checklist
 
 - [ ] What is the context/token budget per request, and what drops first when it overflows?
 - [ ] Is every model output parsed and validated at the boundary before it touches state or
-      triggers an action (PAT-01, AX-08)?
-- [ ] Which tools can the model invoke, at what privilege, and which actions require a human
-      (PAT-17)?
+      triggers an action? *(PAT-01, AX-08)*
+- [ ] Which tools can the model invoke, at what privilege, and which actions require a human?
+      *(PAT-17)*
 - [ ] What untrusted content reaches the prompt, and how is injection contained?
-- [ ] Does a versioned golden eval suite gate every prompt or model change (AX-16)?
-- [ ] How do tests absorb non-determinism — property and schema assertions, not exact strings
-      (AX-16)?
+- [ ] Does a versioned golden eval suite gate every prompt or model change? *(AX-16)*
+- [ ] How do tests absorb non-determinism — property and schema assertions, not exact strings?
+      *(AX-16)*
 - [ ] What happens on a provider 429 or outage — timeout, bounded retry, fallback model, or
-      documented degraded mode (AX-09, PAT-05, PAT-08)?
-- [ ] Are prompts and exact model versions pinned, versioned, and rolled back with the code
-      (AX-06, AX-15)?
-- [ ] Is PII redacted before prompts leave the trust boundary and before traces are written
-      (DD-14, PAT-13)?
-- [ ] Is every RAG/vector index a rebuildable projection with a pinned embedding model version
-      (DD-17)?
-- [ ] Is cost per interaction traced and budgeted, with caching and routing weighed (AX-14,
-      AX-18)?
+      documented degraded mode? *(AX-09, PAT-05, PAT-08)*
+- [ ] Are prompts and exact model versions pinned, versioned, and rolled back with the code?
+      *(AX-06, AX-15)*
+- [ ] Is PII redacted before prompts leave the trust boundary and before traces are written?
+      *(DD-14, PAT-13)*
+- [ ] Is every RAG/vector index a rebuildable projection with a pinned embedding model version?
+      *(DD-17)*
+- [ ] Is cost per interaction traced and budgeted, with caching and routing weighed?
+      *(AX-14, AX-18)*
 
 ## Context and prompting
 

@@ -6,7 +6,8 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 **Load when:** choosing a data structure or algorithm for a hot path, reviewing
 performance-sensitive or input-processing code (parsers, regex, hashing, sorting), sizing
 caches/indexes/limits, or designing anything that streams, samples, shards, or rate-limits.
-**Doctrine hooks:** AX-01, AX-16, AX-18, AX-19, AX-21, PAT-01, PAT-09, PAT-20, DF-02, DF-04, DD-17
+**Doctrine hooks:** AX-01, AX-04, AX-06, AX-16, AX-18, AX-21, AX-22, DD-04, DD-17, PAT-01, PAT-09,
+PAT-20, DF-02, DF-04
 
 ## Design checklist
 
@@ -119,14 +120,13 @@ caches/indexes/limits, or designing anything that streams, samples, shards, or r
 
 ## Applied structures in systems
 
-- **Consistent hashing** — the default for spreading keys over a changing node set; `hash % n`
-  reshuffles nearly everything on membership change — use virtual nodes to even out load.
+- **Consistent hashing** — `hash % n` reshuffles nearly every key on membership change; the
+  placement design (virtual nodes, hot keys) lives in `07-distributed-systems-theory.md`.
 - **Geospatial indexing (geohash, quadtrees, H3, R-trees)** — never hand-roll proximity search;
   use the database's spatial index *(DF-02, AX-21)*, and mind grid-cell adjacency gotchas at
   cell boundaries and poles.
-- **Rate-limiter algorithms** — token bucket vs sliding window is a product choice (burst
-  tolerance vs smoothness); state atomicity under concurrency and whether limits are per-node
-  or global *(PAT-20)*.
-- **LRU/LFU eviction** — every bounded cache needs a designed eviction policy; LRU is O(1) via
-  hashmap-plus-list but scan-vulnerable — consider segmented or frequency-aware variants
-  *(PAT-09)*.
+- **Rate-limiter algorithms** — the algorithm choice (token bucket vs windows) is settled in
+  `08-resilience.md`; the implementation questions here are counter atomicity under concurrency
+  and per-node vs global limits *(PAT-20)*.
+- **LRU/LFU eviction** — the O(1) hashmap-plus-list LRU is scan-vulnerable; policy selection
+  (TinyLFU/ARC, validated by measured hit rate) lives in `05-data-scale.md` *(PAT-09)*.

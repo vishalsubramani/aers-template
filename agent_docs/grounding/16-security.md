@@ -6,8 +6,8 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 **Load when:** designing or reviewing anything that authenticates, authorizes, accepts external
 input, fetches URLs, handles uploads/webhooks, stores or deletes sensitive data, touches crypto or
 secrets, adds dependencies, or wires LLM tool use.
-**Doctrine hooks:** PAT-01, PAT-16, PAT-17, PAT-18, PAT-19, PAT-20, AX-08, AX-12, AX-13, AX-21,
-DD-14, DD-15, DD-16, DF-04, DF-06
+**Doctrine hooks:** AX-08, AX-12, AX-13, AX-14, AX-17, AX-21, DD-14, DD-15, DD-16, DD-17, PAT-01,
+PAT-16, PAT-17, PAT-18, PAT-19, PAT-20, DF-04, DF-06
 
 ## Design checklist
 
@@ -152,7 +152,8 @@ DD-14, DD-15, DD-16, DF-04, DF-06
 - **CSPRNGs** — every token, nonce, session ID, and key comes from the OS CSPRNG;
   `Math.random`-class generators in a security context are a finding *(PAT-19)*.
 - **TLS & certificate lifecycle** — TLS 1.2 floor, 1.3 preferred; automate issuance and renewal
-  (short-lived certs) — manual certificate expiry is a top self-inflicted outage; alert on expiry.
+  (short-lived certs) — manual certificate expiry is a top self-inflicted outage; alert on expiry
+  *(PAT-18, AX-14)*.
 - **Encryption at rest: disk vs field-level** — disk/volume encryption only defends stolen
   hardware; fields the application should not broadly read need field-level encryption under
   separate keys *(DD-14)*.

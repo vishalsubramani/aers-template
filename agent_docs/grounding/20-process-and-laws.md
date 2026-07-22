@@ -6,15 +6,15 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 **Load when:** planning delivery/rollout, writing or reviewing ADRs and design docs, sizing or
 splitting tasks, defining metrics or SLO targets, deprecating or migrating anything, drawing module
 or team ownership boundaries, or running an incident review.
-**Doctrine hooks:** AX-01, AX-02, AX-05, AX-06, AX-15, AX-17, AX-18, AX-20, AX-21, DD-09, DD-10,
-DD-11, DD-18, PAT-04, PAT-14, DF-01
+**Doctrine hooks:** AX-01, AX-02, AX-05, AX-06, AX-14, AX-15, AX-17, AX-18, AX-20, AX-21, DD-09,
+DD-10, DD-11, DD-12, DD-18, PAT-04, PAT-14, DF-01
 
 ## Design checklist
 
 - [ ] Is this the smallest reversible increment, shipped behind a flag with an owner and removal
   date rather than a big-bang branch? *(AX-15, PAT-14)*
 - [ ] Every deviation or notable fork recorded as an ADR with trade-offs and a revisit trigger —
-  not relitigated in chat? *(DF preamble)*
+  not relitigated in chat?
 - [ ] For any target metric introduced: what happens when people optimize it directly (Goodhart),
   and what countervailing metric pairs with it?
 - [ ] Does the new public surface invite Hyrum's-law dependence on incidental behavior — is
@@ -26,7 +26,7 @@ DD-11, DD-18, PAT-04, PAT-14, DF-01
 - [ ] Does the migration plan cost the contract phase — backfill, verification, old-shape
   removal — not just the expand step? *(DD-10, DD-11)*
 - [ ] Was a premortem run: assume this shipped and failed — what broke, and how would we have
-  noticed? *(DF-06 interrogation, AX-14)*
+  noticed? *(AX-14)*
 - [ ] Is the build reproducible from a clean checkout (`make bootstrap`, pinned lockfile), with no
   reliance on local state? *(AX-21)*
 - [ ] How many innovation tokens does the design spend, and is each named in an ADR? *(AX-01)*
@@ -38,8 +38,8 @@ DD-11, DD-18, PAT-04, PAT-14, DF-01
 - **DORA metrics** — deploy frequency, lead time, change-failure rate, time to restore: optimize
   the system, not individuals; small reversible batches move all four together, so speed and
   stability are not a trade-off *(AX-15)*.
-- **Trunk-based development + flags** — long-lived branches hide integration risk until merge day;
-  default to short-lived branches into trunk with incomplete work dark behind expiring flags
+- **Trunk-based development + flags** — the flow enabler behind the DORA metrics: small batches
+  into trunk, incomplete work dark behind expiring flags; branch mechanics in `03-writing-code.md`
   *(PAT-14, AX-15)*.
 - **WIP limits & flow** — kanban's actual point: starting more work slows finishing work; when
   blocked, swarm on finishing in-flight items instead of opening new ones. One task at a time.
@@ -50,8 +50,7 @@ DD-11, DD-18, PAT-04, PAT-14, DF-01
 ## Documentation and knowledge
 
 - **Design docs & RFCs; ADRs** — an unwritten decision gets relitigated forever; record context,
-  rejected options, and a revisit trigger before implementing, in the repo's ADR shape
-  *(DF preamble)*.
+  rejected options, and a revisit trigger before implementing, in the repo's ADR shape.
 - **Diátaxis** — tutorials, how-tos, reference, explanation serve different reader modes; a doc
   mixing quadrants serves none — pick one per document and link across.
 - **READMEs & onboarding as products** — the setup path is an interface with users; test it from
@@ -79,8 +78,8 @@ DD-11, DD-18, PAT-04, PAT-14, DF-01
   own its slice end to end, split the boundary, not the accountability *(DF-01)*.
 - **Brooks's law** — adding people to a late project makes it later: onboarding and coordination
   costs land immediately, output later; cut scope instead *(AX-17)*.
-- **Second-system effect** — the follow-up to a successful simple system attracts every deferred
-  feature; treat "this time we'll do it right" rewrites as a red flag *(AX-02)*.
+- **Second-system effect** — the planning red flag: a "this time we'll do it right" rewrite on
+  the roadmap; design angle in `01-design-principles.md` *(AX-02)*.
 - **Bus factor** — count the people who can safely touch each critical area; a bus factor of one
   is an outage waiting on a vacation — fix with pairing, docs, and rotation.
 
@@ -90,9 +89,9 @@ DD-11, DD-18, PAT-04, PAT-14, DF-01
   percent, velocity, LOC) directly — pair each target with a countervailing check.
 - **Gall's law** — working complex systems evolve from working simple ones; designing the
   complex end state up front fails — ship the simple system and grow it *(AX-02, AX-17)*.
-- **Hyrum's law** — with enough users, every observable behavior gets depended on: error strings,
-  ordering, timing; minimize what's observable and treat any change to it as breaking
-  *(AX-05, AX-06, DD-13)*.
+- **Hyrum's law** — design angle in `01-design-principles.md`; the process consequence: any change
+  to observable behavior gets deprecation-window treatment, however non-contractual it looks
+  *(AX-05, PAT-04)*.
 - **Parkinson's law** — work expands to fill the time allotted; give tasks explicit budgets and
   stop conditions, and timebox open-ended investigation.
 - **Bike-shedding (law of triviality)** — review effort flows to what's easy to opine on; cap
@@ -102,12 +101,12 @@ DD-11, DD-18, PAT-04, PAT-14, DF-01
   *(AX-18)*.
 - **The Lindy effect** — technology that has survived decades will likely survive more; weight
   longevity as evidence when choosing dependencies over this year's framework *(AX-01, AX-21)*.
-- **Chesterton's fence** — it belongs everywhere: never remove code, a constraint, or a config
-  you can't explain; git-blame and ask before deleting, then delete decisively *(AX-20)*.
-- **Hanlon's razor** — in incident reviews, assume process gaps before malice or incompetence;
-  blame ends the learning, so ask what made the mistake easy to make.
-- **Blameless postmortems** — the point of Hanlon applied: people report honestly only when the
-  review fixes systems, not people; punish concealment, never disclosure.
+- **Chesterton's fence** — full entry in `01-design-principles.md`; the process rule: a cleanup
+  or deprecation task is not approved until the fence's original purpose is answered in the plan
+  *(AX-20)*.
+- **Hanlon's razor & blameless postmortems** — in incident reviews, assume process gaps before
+  malice: ask what made the mistake easy to make, and punish concealment, never disclosure;
+  postmortem mechanics live in `15-observability-and-operations.md`.
 - **Cunningham's law** — the fastest way to a right answer is posting a wrong one; circulate a
   concrete strawman design to draw out corrections a blank question never surfaces.
 
