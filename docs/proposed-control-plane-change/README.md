@@ -75,9 +75,10 @@ and recorded rollback.
   guardrail in the same run — exactly what the constitution forbids. The gates were hardened
   in code to read policy and gated status from the committed baseline (so a PR cannot relax
   its own gate), but code hardening cannot protect the gate *files themselves*; that requires
-  this patch. It adds `scripts/checks/**`, `Makefile`, `assurance/**`, and
+  this patch. It adds `scripts/checks/**`, `Makefile`, and
   `docs/proposed-control-plane-change/**` to the protected-paths policy and the settings deny
-  list, and adds CODEOWNERS ownership for those paths plus the merge-boundary paths the gates
+  list (`assurance/**` is left to `protect-assurance-layer.patch`, which owns it), and adds
+  CODEOWNERS ownership for those paths plus the merge-boundary paths the gates
   depend on (`.specify/specs/**` for contract-tier honesty, the decision-log procedure, the
   grounding library (CODEOWNERS-only, to preserve its normal-PR maintenance loop), the PR
   template, and the gates' own tests).
