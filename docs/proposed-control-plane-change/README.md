@@ -63,6 +63,36 @@ and recorded rollback.
 - **Rollback:** revert the patch; the gate and library remain functional but
   discovery-only.
 
+### 6. Protect the author-side gates and their wiring (CRITICAL)
+- **Files:** `.agents/policies/protected-paths.json`, `.claude/settings.json`, `CODEOWNERS`
+  (all protected)
+- **Patch:** `protect-gates.patch`
+- **Why:** an adversarial review of this repository found the load-bearing gap — both
+  author-side gates (`scripts/checks/independent_review_gate.py`,
+  `scripts/checks/decision_log_gate.py`), their wiring (`Makefile` `check:` target), and the
+  assurance tree are **agent-writable and unowned**, while CI validates a PR using that PR's
+  own copy of the gates. An agent could gut or un-wire a gate and rely on the modified
+  guardrail in the same run — exactly what the constitution forbids. The gates were hardened
+  in code to read policy and gated status from the committed baseline (so a PR cannot relax
+  its own gate), but code hardening cannot protect the gate *files themselves*; that requires
+  this patch. It adds `scripts/checks/**`, `Makefile`, `assurance/**`, and
+  `docs/proposed-control-plane-change/**` to the protected-paths policy and the settings deny
+  list, and adds CODEOWNERS ownership for those paths plus the merge-boundary paths the gates
+  depend on (`.specify/specs/**` for contract-tier honesty, the decision-log procedure, the
+  grounding library (CODEOWNERS-only, to preserve its normal-PR maintenance loop), the PR
+  template, and the gates' own tests).
+- **CI note:** for the baseline-read hardening to protect against self-relaxation in CI, the
+  workflow must make the base branch available (fetch it, or set `AERS_BASELINE_REF`). With a
+  shallow single-commit checkout the gates degrade to reading the working tree and say so;
+  CODEOWNERS + branch protection remain the merge boundary either way.
+- **Rollback:** revert the patch; the gates keep functioning, only their files become
+  agent-writable again.
+- **Apply-order note:** this patch and `protect-assurance-layer.patch` both add lines to
+  `protected-paths.json` and `CODEOWNERS` in nearby regions; `protect-gates.patch`
+  deliberately omits `assurance/**` (that one owns it). Apply them in one control-plane
+  change and reconcile the two hunks together rather than expecting both to apply blindly in
+  sequence.
+
 ## Applying
 
 1. Open a dedicated feature/task contract for the control-plane change.

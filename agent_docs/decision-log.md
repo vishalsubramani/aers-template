@@ -88,10 +88,12 @@ Field rules:
   decisions are rarely `cheap` (DD-02, AX-05); be honest.
 - `confidence` — `high` | `medium` | `low`. Low confidence is information, not weakness;
   hiding it defeats the log.
-- `human_status` — `pending` when authored. Only a human flips it to `validated` or
-  `countered` (with `validated_by` set to their handle). A counter must set `follow_up`
-  to the corrective action (new task, ADR, or fix) — countering without consequence is
-  theater.
+- `human_status` — `pending` when authored. A human sets it to `validated` or `countered`
+  with `validated_by` set to their handle; a counter must set `follow_up` to the corrective
+  action (new task, ADR, or fix). The gate enforces that `validated_by` is present and is
+  not the agent author id, but it *cannot verify the handle belongs to a human* — that trust
+  boundary is CODEOWNERS review on the log paths, not the gate (see "What the gate cannot
+  see" in `docs/decision-log-gate.md`).
 
 ## Human review protocol (the point of all this)
 
@@ -119,8 +121,12 @@ the independent-review gate and sharing its config (`assurance/reviews/config.js
   least one schema-valid entry.
 - Every log line (feature or `docs/decisions/`) must validate: required fields, enums,
   unique ids, doctrine refs well-formed, deviation entries carrying an `adr_ref`.
-- The human-validation rule above is enforced mechanically; `validated_by` must be present
-  and must not equal the configured agent author id.
+- The human-validation rule above is enforced mechanically to the limit a gate can reach:
+  `validated_by` must be present and must not equal the configured agent author id. The gate
+  cannot confirm the handle is a real human — that is the reviewer's and CODEOWNERS' job.
+- The policy (`assurance/reviews/config.json`) and each contract's gated status are read from
+  the committed baseline, so a PR cannot un-gate itself by editing config or downgrading a
+  risk tier in the same change; and the log is checked append-only against that baseline.
 
 Like every author-side gate, this proves process, not truth — the boundary remains human
 review plus branch protection. The gate exists so the *absence* of the record can never be

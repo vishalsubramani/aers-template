@@ -47,6 +47,24 @@ def scaffold(td, entries, contract=CONTRACT, config=CONFIG, write_log=True):
     return repo
 
 
+def git(repo, *a):
+    import subprocess
+    return subprocess.run(["git", "-C", str(repo), *a], check=True,
+                          capture_output=True, text=True).stdout.strip()
+
+
+def scaffold_git(td, entries, contract=CONTRACT, config=CONFIG):
+    """A committed baseline on 'main' plus a working-tree state, so baseline-read
+    and append-only checks can be exercised."""
+    repo = scaffold(td, entries, contract=contract, config=config)
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "config", "user.email", "t@invalid.local")
+    git(repo, "config", "user.name", "t")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "baseline")
+    return repo
+
+
 class ValidateEntryTests(unittest.TestCase):
     def test_valid_entry_passes(self):
         self.assertEqual(gate.validate_entry(entry(), "x"), [])
@@ -167,6 +185,94 @@ class GateEndToEndTests(unittest.TestCase):
             bad = entry(id="DEC-DOC-002", doctrine_basis="vibes")
             (decisions / "log.jsonl").write_text(json.dumps(bad) + "\n")
             self.assertEqual(gate.main(repo), 1)
+
+
+class HardeningTests(unittest.TestCase):
+    """Regression tests for the red-team findings: each asserts a demonstrated
+    bypass is now blocked."""
+
+    def test_empty_required_tiers_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            cfg = dict(CONFIG, required_risk_tiers=[])
+            repo = scaffold(td, [entry()], config=cfg)
+            self.assertEqual(gate.main(repo), 1)
+
+    def test_duplicate_json_key_rejected(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo = scaffold(td, [entry()])
+            log = repo / ".specify/specs/FEAT-X/decision-log.jsonl"
+            # A trailing 'reversibility":"cheap' would win last-wins parsing and hide
+            # a one-way decision; duplicate keys must be rejected outright.
+            log.write_text('{"reversibility": "one-way", "reversibility": "cheap"}\n')
+            self.assertEqual(gate.main(repo), 1)
+
+    def test_non_dict_line_is_handled(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo = scaffold(td, [entry()])
+            log = repo / ".specify/specs/FEAT-X/decision-log.jsonl"
+            log.write_text("[1, 2, 3]\n")
+            self.assertEqual(gate.main(repo), 1)
+
+    def test_empty_options_and_assumptions_fails(self):
+        e = entry(options=[], assumptions=[])
+        self.assertTrue(any("neither an option nor an assumption" in err
+                            for err in gate.validate_entry(e, "x")))
+
+    def test_empty_options_with_assumption_is_allowed(self):
+        e = entry(options=[], assumptions=[{"assumption": "spec is silent", "needs_human_validation": False}])
+        self.assertEqual(gate.validate_entry(e, "x"), [])
+
+    def test_validated_veneer_on_non_risky_entry_rejected(self):
+        # Cheap/high-confidence entry cannot wear a "validated" label with no human.
+        e = entry(human_status="validated", validated_by=None)
+        self.assertTrue(gate.validate_human_rule(e, "x", "primary-implementer"))
+        e2 = entry(human_status="validated", validated_by="primary-implementer")
+        self.assertTrue(any("self-validation" in err
+                            for err in gate.validate_human_rule(e2, "x", "primary-implementer")))
+
+    def test_baseline_config_defeats_self_ungating(self):
+        # Baseline gates R2; the PR rewrites config to exclude the feature. The gate
+        # must use the baseline policy and still demand the (missing) log.
+        with tempfile.TemporaryDirectory() as td:
+            repo = scaffold_git(td, [entry()])
+            # Attacker removes the log and self-excludes in the working tree.
+            (repo / ".specify/specs/FEAT-X/decision-log.jsonl").unlink()
+            (repo / "assurance/reviews/config.json").write_text(
+                json.dumps(dict(CONFIG, exclude_features=["FEAT-X"])))
+            self.assertEqual(gate.main(repo), 1)
+
+    def test_baseline_contract_defeats_tier_downgrade(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo = scaffold_git(td, [entry()])
+            (repo / ".specify/specs/FEAT-X/decision-log.jsonl").unlink()
+            # Downgrade R2 -> R1 in the working tree to dodge gating.
+            (repo / ".specify/specs/FEAT-X/feature.contract.json").write_text(
+                json.dumps(dict(CONTRACT, risk_tier="R1")))
+            self.assertEqual(gate.main(repo), 1)
+
+    def test_append_only_deletion_detected(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo = scaffold_git(td, [entry(id="DEC-FEAT-X-001"), entry(id="DEC-FEAT-X-002")])
+            # Working tree drops the second entry.
+            (repo / ".specify/specs/FEAT-X/decision-log.jsonl").write_text(
+                json.dumps(entry(id="DEC-FEAT-X-001")) + "\n")
+            self.assertEqual(gate.main(repo), 1)
+
+    def test_append_only_rewrite_detected(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo = scaffold_git(td, [entry(id="DEC-FEAT-X-001", selected="original choice")])
+            (repo / ".specify/specs/FEAT-X/decision-log.jsonl").write_text(
+                json.dumps(entry(id="DEC-FEAT-X-001", selected="rewritten choice")) + "\n")
+            self.assertEqual(gate.main(repo), 1)
+
+    def test_append_only_human_fields_may_change(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo = scaffold_git(td, [entry(id="DEC-FEAT-X-001", reversibility="one-way")])
+            # A human validating an existing entry is legitimate, not a rewrite.
+            (repo / ".specify/specs/FEAT-X/decision-log.jsonl").write_text(
+                json.dumps(entry(id="DEC-FEAT-X-001", reversibility="one-way",
+                                 human_status="validated", validated_by="a-human")) + "\n")
+            self.assertEqual(gate.main(repo), 0)
 
 
 if __name__ == "__main__":

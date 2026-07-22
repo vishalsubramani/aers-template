@@ -1,9 +1,10 @@
 # Decision-log gate
 
 Additive, author-side hardening that makes the **record of agent judgment** — decision
-points, assumptions, trade-offs — an unskippable, reviewable artifact of every gated
-feature, regardless of which vendor's agent (Claude, Codex, Gemini, a human) produced the
-work.
+points, assumptions, trade-offs — a reviewable artifact whose *absence* is unskippable at
+merge time for every gated feature, regardless of which vendor's agent (Claude, Codex,
+Gemini, a human) produced the work. What the gate can and cannot guarantee is stated plainly
+under "What the gate cannot see" below — this is a process control, not a proof of honesty.
 
 ## Why
 
@@ -51,8 +52,44 @@ artifacts. Exclusions are logged loudly, never silent.
   entries must point at an accepted ADR, and load-bearing entries get promoted.
 - Like every author-side control, this proves process, not truth. The boundary remains
   human review, CODEOWNERS, and branch protection. An agent can write a self-serving log;
-  it cannot write an *absent* one, and the risky subset cannot merge without a named
-  human's hand.
+  what the gate guarantees is that it cannot write an *absent* one, cannot relax the policy
+  in the same PR, and cannot mark a risky entry validated without a non-author handle — but
+  the handle's humanity, and the honesty of the entry's self-declared risk, are the human
+  reviewer's job, not the gate's.
+
+## What the gate cannot see (limits, stated honestly)
+
+A gate proves process, not truth. These are the known gaps; the compensating control for
+each is human review plus the protections in `docs/proposed-control-plane-change/`.
+
+- **Humanity of `validated_by`.** The gate checks the handle is present and is not the agent
+  author id; it cannot prove a human typed it. An agent that invents a plausible handle
+  passes this check. Compensating control: CODEOWNERS on the log paths (`.specify/specs/**`,
+  `docs/decisions/**`) so a real reviewer's approval is required to merge the change that
+  sets it.
+- **Honesty of self-declared risk.** `reversibility` and `confidence` are asserted by the
+  author. Labeling a one-way decision `cheap`, or a shaky assumption `high` confidence,
+  dodges the mandatory-human rule. The gate cannot adjudicate this; reviewers should be
+  skeptical of any entry touching migrations, schemas, or public APIs that claims `cheap`,
+  and of a large feature whose entries flag *zero* assumptions for validation.
+- **Completeness.** The gate checks the log is present, valid, and append-only; it cannot
+  know a decision was made but *not logged*. A minimal-compliance log with one trivial entry
+  passes presence. The reviewer's question — "does this log explain the decisions I see in
+  the diff?" — is the real completeness check; the gate's computed salience line (entry and
+  risky-entry counts) exists to make that comparison cheap.
+- **Timing.** "Log at decision time" is a discipline, not a mechanical guarantee; a log
+  written wholesale at the end passes. Under squash-merge the git timestamps that might
+  reveal this are erased, so it is not enforced.
+- **Volume / flooding.** Nothing caps entry count. Many trivial entries can bury a risky one.
+  The salience line surfaces the risky subset by id so burial is visible, but attention is
+  finite — the reviewer must still read the flagged entries.
+
+The mechanical guarantees the gate *does* provide: a gated feature cannot merge with an
+absent, empty, malformed, or non-append-only log; risky entries cannot go green while
+`pending`; a "validated"/"countered" label requires a non-author handle (and a counter a
+follow-up); and the policy and gated status are read from the committed baseline, so a PR
+cannot relax its own gate. Everything above is what those guarantees deliberately do **not**
+cover.
 
 ## Reviewing a PR through the log
 

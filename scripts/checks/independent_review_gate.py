@@ -27,20 +27,53 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _baseline  # noqa: E402
+
 REPO = Path(__file__).resolve().parents[2]
 SPECS = REPO / ".specify" / "specs"
 REVIEWS = REPO / "assurance" / "reviews"
 CONFIG = REVIEWS / "config.json"
+CONFIG_REL = "assurance/reviews/config.json"
 
 VALID_VERDICTS = {"pass", "fail", "needs_review"}
 BLOCKING = {"high", "critical"}
 
 
-def load_config() -> dict:
+def load_config(repo: Path = REPO) -> dict:
+    """Prefer the baseline-committed policy so a PR cannot relax its own review
+    gate by editing config.json in the same change; fall back to the working tree
+    only when no baseline is resolvable (mirrors the decision-log gate)."""
     default = {"author_id": "primary-implementer", "required_risk_tiers": ["R2"], "exclude_features": []}
-    if CONFIG.exists():
+    baseline_raw = _baseline.read_baseline_file(repo, CONFIG_REL)
+    if baseline_raw is not None:
+        default.update(json.loads(baseline_raw))
+        worktree_raw = CONFIG.read_text() if CONFIG.exists() else None
+        if worktree_raw is not None and worktree_raw != baseline_raw:
+            print("note: assurance/reviews/config.json differs from baseline; the review "
+                  "gate uses the BASELINE policy (a change takes effect only after review + merge).")
+    elif CONFIG.exists():
         default.update(json.loads(CONFIG.read_text()))
+        if _baseline.is_git_repo(repo):
+            print("note: no baseline ref resolved (shallow checkout?); review gate read config "
+                  "from the working tree — fetch the base branch for full self-relaxation protection.")
     return default
+
+
+def scope_matches(path: str, scope: str) -> bool:
+    """Does a touched path fall within a write-scope glob, on segment boundaries?
+
+    A scope that begins with a glob (``**``, ``**/*.py``) matches anything, so the
+    candidate binding still requires the commit to touch *something* rather than
+    passing vacuously. A literal-prefixed scope like ``src/**`` matches ``src`` and
+    ``src/...`` but NOT ``src2/...`` — the trailing separator prevents the
+    prefix-substring over-match the old code allowed.
+    """
+    base = scope.split("*", 1)[0]
+    if not base:
+        return True
+    base = base.rstrip("/")
+    return path == base or path.startswith(base + "/")
 
 
 def git(*args: str) -> str:
@@ -68,14 +101,6 @@ def write_scopes(feature_dir: Path) -> list[str]:
     for t in tasks.get("tasks", []):
         scopes.extend(t.get("write_scope", []))
     return scopes
-
-
-def scope_prefixes(scopes: list[str]) -> list[str]:
-    # Turn glob write-scopes into simple path prefixes for a touch check.
-    prefixes = []
-    for s in scopes:
-        prefixes.append(s.split("*", 1)[0].rstrip("/"))
-    return [p for p in prefixes if p]
 
 
 def check_feature(feature_dir: Path, cfg: dict) -> list[str]:
@@ -123,8 +148,11 @@ def check_feature(feature_dir: Path, cfg: dict) -> list[str]:
         errors.append(f"{fid}: candidate_sha {sha} is not a commit in history")
     else:
         touched = commit_paths(sha)
-        prefixes = scope_prefixes(write_scopes(feature_dir))
-        if prefixes and not any(p.startswith(tuple(prefixes)) for p in touched):
+        scopes = write_scopes(feature_dir)
+        # No vacuous pass: a scope must exist AND the candidate must touch it. A
+        # merge commit (empty name-only output) therefore fails binding rather than
+        # passing silently, and a wildcard scope no longer skips the check.
+        if scopes and not any(scope_matches(p, s) for p in touched for s in scopes):
             errors.append(f"{fid}: candidate {sha} touches no path in the feature write scope")
 
     # No unresolved blocking findings.
@@ -144,6 +172,11 @@ def check_feature(feature_dir: Path, cfg: dict) -> list[str]:
 
 def main() -> int:
     cfg = load_config()
+    if not cfg.get("required_risk_tiers"):
+        print("INDEPENDENT-REVIEW GATE: FAIL (fail-closed)")
+        print("  - required_risk_tiers is empty; the gate would enforce nothing. "
+              "Set it in assurance/reviews/config.json (baseline-committed).")
+        return 1
     feature_dirs = sorted(
         Path(p).parent for p in glob.glob(str(SPECS / "*" / "feature.contract.json"))
     )
