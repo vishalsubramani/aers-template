@@ -6,8 +6,8 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 **Load when:** designing or reviewing anything that spans more than one process or node —
 replication, failover, leader election, distributed locks or caches, cross-service invariants,
 consistency choices, clock- or ordering-dependent logic.
-**Doctrine hooks:** AX-01, AX-09, AX-10, AX-12, DD-06, DD-09, DD-16, PAT-05, PAT-06, PAT-09,
-PAT-11, PAT-15, DF-03, DF-04, DF-05
+**Doctrine hooks:** AX-01, AX-09, AX-10, AX-12, AX-14, AX-17, AX-18, DD-06, DD-09, DD-16,
+PAT-05, PAT-06, PAT-07, PAT-09, PAT-11, PAT-15, DF-04, DF-05
 
 ## Design checklist
 

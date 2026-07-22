@@ -5,8 +5,9 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 
 **Load when:** designing or reviewing anything with a queue, topic, event, webhook, background job,
 saga, or stream processor — including the sync-vs-async fork itself (DF-03).
-**Doctrine hooks:** AX-06, AX-09, AX-10, AX-14, AX-22, DD-02, DD-06, DD-13, DD-16, DD-17,
-PAT-05, PAT-06, PAT-07, PAT-11, PAT-12, PAT-20, DF-03, DF-06
+**Doctrine hooks:** AX-01, AX-06, AX-09, AX-10, AX-14, AX-17, AX-18, AX-21, AX-22, DD-02, DD-06,
+DD-13, DD-16, DD-17, DD-18, PAT-04, PAT-05, PAT-06, PAT-07, PAT-11, PAT-12, PAT-13, PAT-20,
+DF-03, DF-04, DF-05, DF-06
 
 ## Design checklist
 
@@ -109,14 +110,14 @@ PAT-05, PAT-06, PAT-07, PAT-11, PAT-12, PAT-20, DF-03, DF-06
   replace read-side caches, but they are rebuildable projections that never write back to the
   source *(DD-17)*.
 
-## Operating async systems (additions)
+## Operating async systems
 
 - **Consumer lag as an SLI** — lag and DLQ depth are the primary health signals of an async
   system; alert on them against stated SLOs, because "the queue is up" says nothing about
   staleness *(AX-14, AX-22)*.
-- **Change data capture (CDC)** — tailing the database log emits events without dual-writes but
-  publishes your internal schema as a contract; put a translation layer between table shape and
-  the published event *(DD-02, PAT-12)*.
+- **Change data capture (CDC)** — owned by 05-data-scale; the messaging-side gotcha: emitted
+  events publish your table shape as a contract — interpose a translation layer *(DD-02,
+  PAT-12)*.
 - **Message envelope & trace propagation** — carry correlation/trace IDs, event time, schema
   version, and idempotency key in a standard envelope, or cross-hop day-2 debugging is guesswork
   *(PAT-13, AX-14)*.

@@ -6,8 +6,8 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 **Load when:** setting latency/throughput targets, sizing or scaling a service, designing hot
 paths or fan-out, reviewing benchmarks or load tests, choosing serialization or batching,
 planning autoscaling, capacity, or serverless deployment.
-**Doctrine hooks:** AX-09, AX-14, AX-18, AX-22, DD-08, DD-17, PAT-05, PAT-07, PAT-09, PAT-10,
-PAT-20, DF-01, DF-02, DF-03, DF-06
+**Doctrine hooks:** AX-06, AX-09, AX-14, AX-18, AX-19, AX-22, DD-02, DD-17, PAT-03, PAT-05,
+PAT-07, PAT-09, PAT-10, PAT-20, DF-01, DF-02, DF-03, DF-06
 
 ## Design checklist
 
@@ -38,8 +38,9 @@ PAT-20, DF-01, DF-02, DF-03, DF-06
   speedup, and contention plus crosstalk make throughput *drop* past a point; find the serial part first.
 - **Queueing intuition** — latency explodes past ~70–80% utilization; plan headroom there, and
   treat "we'll run it at 90%" in a capacity plan as a defect *(PAT-20)*.
-- **Latency numbers every programmer should know** — keep orders of magnitude live (RAM ~100ns,
-  SSD ~100µs, same-DC RTT ~0.5ms, cross-region ~100ms); designs that ignore them fail estimation.
+- **Latency numbers every programmer should know** — check every plan's estimate against the
+  orders of magnitude (RAM ~100ns, SSD ~100µs, same-DC RTT ~0.5ms, cross-region ~100ms); an
+  estimate that ignores a network hop is a review finding *(AX-18)*.
 
 ## Efficiency: batching, the wire, and the CPU
 
@@ -47,8 +48,8 @@ PAT-20, DF-01, DF-02, DF-03, DF-06
   batch size and add a max-wait so latency and memory stay capped *(DF-03, PAT-07)*.
 - **Chatty vs chunky APIs** — N+1 round trips over a network dwarf compute; design boundary calls
   to fetch what one interaction needs in few exchanges *(AX-06, PAT-10)*.
-- **N+1 queries** — the database edition of chatty: per-item queries in a loop; reviewers should
-  hunt for it in any list-rendering or ORM code path *(PAT-03)*.
+- **N+1 queries** — the database edition of chatty: hunt for per-item queries in any
+  list-rendering or ORM path; detection and fixes live in 04-data-storage *(PAT-03)*.
 - **Serialization cost (JSON vs binary)** — parse/encode can dominate hot-path CPU; measure before
   swapping formats, and treat the format as a versioned contract, not an optimization knob *(AX-18, DD-02)*.
 - **Compression tradeoffs** — trades CPU for bytes on the wire; wins on slow links and big
@@ -60,7 +61,8 @@ PAT-20, DF-01, DF-02, DF-03, DF-06
 - **Benchmark pitfalls** — warmup (JIT/caches), dead-code elimination of unused results, and
   unrealistically uniform data all fabricate wins; benchmark with production-shaped data and sinks.
 - **Connection pooling** — per-request TCP/TLS/DB handshakes destroy latency and exhaust server
-  resources; pool with bounded size (Little's law) and health-checked reuse *(AX-09)*.
+  resources; pool with bounded size — sizing math and exhaustion gotchas live in 04-data-storage
+  *(AX-09)*.
 
 ## Scaling out
 

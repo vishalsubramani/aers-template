@@ -5,8 +5,9 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 
 **Load when:** designing or reviewing anything that crosses a network boundary — API surfaces,
 proxies/load balancers, TLS and certificates, caching/CDN layers, browser-facing features,
-realtime transports, or webhooks.
-**Doctrine hooks:** AX-06, AX-09, AX-10, AX-14, AX-15, AX-18, DD-16, DD-17, PAT-01, PAT-04,
+realtime transports, or consuming third-party webhooks (signature verification, replay windows,
+dedup).
+**Doctrine hooks:** AX-01, AX-06, AX-09, AX-10, AX-14, AX-15, AX-18, DD-16, DD-17, PAT-01,
 PAT-05, PAT-06, PAT-07, PAT-09, PAT-17, PAT-18, DF-03, DF-05
 
 ## Design checklist
@@ -34,9 +35,9 @@ PAT-05, PAT-06, PAT-07, PAT-09, PAT-17, PAT-18, DF-03, DF-05
 
 ## Networking
 
-- **OSI vs TCP/IP mental models** — use layers to localize faults (DNS? TCP? TLS? HTTP?)
-  during debugging; in design conversations the distinction that matters is L4 vs L7, not layer
-  trivia.
+- **OSI vs TCP/IP mental models** — layer trivia buys nothing in design (the load-bearing split
+  is L4 vs L7 — see load balancing); walk the layers (DNS → TCP → TLS → HTTP) only to localize
+  a fault.
 - **DNS: record types, TTLs, caching, negative caching, "propagation"** — failover speed is
   bounded by TTL and resolvers that ignore it; lower TTLs before cutovers; negative caching
   delays brand-new records — "propagation" is just caches expiring.
@@ -66,7 +67,7 @@ PAT-05, PAT-06, PAT-07, PAT-09, PAT-17, PAT-18, DF-03, DF-05
 - **Forward vs reverse proxies** — forward controls egress, reverse controls ingress (TLS
   termination, routing, buffering); a proxy idle timeout shorter than upstream keep-alive
   causes racy 502s — align them explicitly *(AX-09)*.
-- **Slow clients & proxy buffering** *(added)* — reverse-proxy request buffering shields
+- **Slow clients & proxy buffering** — reverse-proxy request buffering shields
   origins from slow clients (slowloris), but response buffering silently breaks streaming
   (SSE, chunked) — disable it per streaming route and test through the real edge.
 - **Load balancing: L4 vs L7; round-robin, least-connections, consistent hashing, EWMA** — L7
@@ -125,7 +126,7 @@ PAT-05, PAT-06, PAT-07, PAT-09, PAT-17, PAT-18, DF-03, DF-05
 - **preload / prefetch / preconnect** — preconnect to known third-party origins; preload only
   late-discovered critical-path assets; overuse steals bandwidth from the critical path —
   measure before and after *(AX-18)*.
-- **Compression (gzip/brotli)** *(added)* — compress text responses at the edge and precompress
+- **Compression (gzip/brotli)** — compress text responses at the edge and precompress
   static assets, but never compress secrets alongside attacker-controlled input in one response
   (BREACH-class leaks).
 - **SEO mechanics under CSR vs SSR** — if organic search or link unfurling matters, client-only

@@ -5,8 +5,8 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 
 **Load when:** designing or reviewing module boundaries, abstractions, interfaces, refactors, or any
 plan/diff where "is this the right structure?" or "is this smell worth a comment?" is in question.
-**Doctrine hooks:** AX-01..AX-08, AX-10..AX-13, AX-16..AX-21, DD-07, DD-17, PAT-01, PAT-02, PAT-06,
-PAT-16, PAT-17, DF-01..DF-06
+**Doctrine hooks:** AX-01..AX-08, AX-10..AX-13, AX-15..AX-21, DD-07, DD-17, PAT-01, PAT-02, PAT-06,
+PAT-09, PAT-16, PAT-17, DF-01..DF-06
 
 ## Design checklist
 
@@ -48,10 +48,9 @@ PAT-16, PAT-17, DF-01..DF-06
   similar code; a shared helper sprouting boolean parameters means re-inline it *(AX-17)*.
 - **KISS** — the simplest design meeting the contract wins review ties; added complexity must name
   what it buys *(AX-17, AX-19)*.
-- **YAGNI** — build for the approved contract, not imagined futures; speculative capability is
-  negative value because it must be maintained and later removed *(AX-17)*.
-- **Rule of three** — tolerate duplication until the third occurrence proves the abstraction's real
-  shape; two instances usually guess it wrong *(AX-17)*.
+- **YAGNI** & **rule of three** — the enforcement of *(AX-17)*: for each capability in a diff, name
+  the contract line that requires it; for each new abstraction, name its existing concrete uses —
+  no name, no merge.
 - **Composition over inheritance** — reach for inheritance only for true is-a substitutability; deep
   hierarchies and open-ended base classes need justification *(AX-07)*.
 - **High cohesion, loose coupling** — measure by change ripple: related things change together in
@@ -68,16 +67,18 @@ PAT-16, PAT-17, DF-01..DF-06
   loudly; limping onward corrupts data downstream *(AX-11, PAT-16)*.
 - **Design by contract** — state preconditions, postconditions, and invariants explicitly (types,
   asserts, schemas) so violations fail at the boundary, not three calls later *(AX-06, AX-08, PAT-01)*.
-- **Idempotence** — retries and redelivery are inevitable; design every externally-triggered
-  mutation to be safe delivered twice before it ships, not after the incident *(AX-10, PAT-06)*.
+- **Idempotence** — *(AX-10, PAT-06)* mandate it; the review move is to ask for the dedupe
+  mechanism by name — key, natural dedup, or compare-and-set — and where a retry lands after a
+  partial failure.
 - **Immutability** — the default for values and shared data; mutation requires a named owner.
   Immutable data deletes whole classes of aliasing and concurrency bugs *(AX-12)*.
 - **Pure functions & referential transparency** — push I/O, clocks, and randomness to the edges so
   the core is deterministic and trivially testable; a buried `now()` call is a review flag *(AX-16)*.
 - **Convention over configuration** — follow the repo/framework convention unless a contract forces
   deviation; every knob exposed is surface to validate, document, and support *(AX-13, PAT-16)*.
-- **Single source of truth** — every fact gets one authoritative home; each copy needs an owner, a
-  rebuild path, and a staleness bound or it silently diverges *(DD-17, PAT-09)*.
+- **Single source of truth** — when copies disagree, the design must already name the winner; if
+  you cannot point at the authoritative home, you have two sources — and a reconciliation incident
+  scheduled *(DD-17, PAT-09)*.
 - **Orthogonality** — features should combine without special cases; if enabling X changes Y's
   behavior, that coupling must become explicit or be removed *(AX-03)*.
 - **Leaky abstractions** — every abstraction leaks under load, failure, or latency; wrap
@@ -92,8 +93,9 @@ PAT-16, PAT-17, DF-01..DF-06
 - **Premature optimization vs. premature pessimization** — skip needless micro-tuning, but don't
   bake in O(n²) or chatty I/O when the obvious design is equally clear; architecture is expensive to
   fix later *(AX-18)*.
-- **Boring technology / innovation tokens** — novelty is a budget spent deliberately in an ADR,
-  never a task-level choice; pick what the team can debug at 3am *(AX-01, DF-04)*.
+- **Boring technology / innovation tokens** — count the genuinely novel components in a plan; more
+  than one per feature is over budget, and "newer" is never itself a trade-off argument
+  *(AX-01, DF-04)*.
 - **Unix philosophy** — small tools with one job, composed through simple stream/text interfaces; a
   component you can't describe without "and" wants splitting *(AX-03, AX-07)*.
 - **Mechanical sympathy** — know the costs your abstractions sit on (cache lines, syscalls, network
@@ -115,9 +117,10 @@ PAT-16, PAT-17, DF-01..DF-06
 - **Golden hammer** — reaching for the familiar tool regardless of fit; state context, options, and
   trade-offs per the decision frameworks before defaulting *(DF-01..DF-06)*.
 - **Cargo-cult programming** — adopting a practice without the context that justified it; "best
-  practice" without a named trade-off is not a recommendation — demand the causal story *(AX-18)*.
-- **Copy-paste programming** — cloned logic diverges silently as fixes land in one copy;
-  deduplicate knowledge at the third occurrence and flag clones in review *(AX-17)*.
+  practice" without a named trade-off is not a recommendation — demand the causal story
+  *(DF-01..DF-06)*.
+- **Copy-paste programming** — when fixing a bug, grep for clones of the buggy logic; the fix that
+  lands in one of three copies is the classic recurrence — flag clones in review *(AX-17)*.
 - **Magic numbers & strings** — unexplained literals hide intent and invite typo bugs; name them,
   and constrain enumerations in types or schema, never free strings *(AX-19, DD-07)*.
 - **Shotgun surgery** — one logical change requiring edits in many places means the concept has no
@@ -130,8 +133,9 @@ PAT-16, PAT-17, DF-01..DF-06
   its invariants come along for free *(AX-08)*.
 - **Long parameter lists** — beyond three or four, callers transpose arguments and defaults sprawl;
   group into typed objects and reconsider the function's responsibility *(AX-19)*.
-- **Speculative generality** — hooks, parameters, and layers with one implementation and no second
-  in sight; delete now — version control remembers *(AX-17, AX-20)*.
+- **Speculative generality** — the reviewable signature: an interface with one implementation, a
+  parameter with one call-site value, a layer that only delegates; delete now — version control
+  remembers *(AX-17, AX-20)*.
 - **Dead code & lava flow** — unused code and "don't touch, unclear why" code both tax every reader;
   delete deliberately after a Chesterton's-fence check *(AX-20)*.
 - **Boat anchor** — the dependency or component kept "in case we need it"; every retained artifact
@@ -154,5 +158,6 @@ PAT-16, PAT-17, DF-01..DF-06
   language's structured async and verify every path handles failure *(AX-11, AX-19)*.
 - **Second-system effect** — the follow-up design bloated with everything version one deferred;
   evolve incrementally, and treat any rewrite as an R2+ ADR decision *(AX-02, AX-15)*.
-- **Resume-driven development** — technology chosen for careers, not the mission; each novelty is an
-  innovation token requiring ADR-recorded justification *(AX-01, DF-04)*.
+- **Resume-driven development** — technology chosen for careers, not the mission; the tell is a
+  justification listing capabilities but no current requirement — walk it through build-vs-buy
+  *(AX-01, DF-04)*.

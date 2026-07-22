@@ -5,13 +5,17 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 
 **Load when:** designing or reviewing tables, indexes, queries, transactions, ORM data access,
 schema migrations, backfills, or anything that touches a relational database's write path.
-**Doctrine hooks:** DD-01, DD-03, DD-04, DD-05, DD-08, DD-10, DD-11, DD-12, DD-15, DD-16, DD-17,
-AX-08, AX-10, AX-12, AX-15, AX-18, PAT-03, PAT-10, DF-02, DF-05
+**Doctrine hooks:** AX-01, AX-08, AX-10, AX-12, AX-14, AX-15, AX-18, DD-01, DD-02, DD-03, DD-04,
+DD-05, DD-06, DD-07, DD-08, DD-10, DD-11, DD-12, DD-14, DD-15, DD-16, DD-17, PAT-01, PAT-03,
+PAT-09, PAT-10, DF-02
 
 ## Design checklist
 
 - [ ] Is the full schema delta (types, constraints, nullability, keys) stated in the plan before
       any code writes it? *(DD-01, DD-03, DD-05)*
+- [ ] Are amounts and precise quantities exact types (never floats), enums constrained, and
+      timestamps timezone-aware UTC — and does every new field carry a classification in the
+      plan's data section? *(DD-06, DD-07, DD-14)*
 - [ ] For every multi-row invariant: which transaction boundary and isolation level protects it,
       and which anomaly (lost update, write skew) was checked? *(DD-16)*
 - [ ] Does every new query have an index that serves it, verified with EXPLAIN on realistic data
@@ -119,6 +123,14 @@ AX-08, AX-10, AX-12, AX-15, AX-18, PAT-03, PAT-10, DF-02, DF-05
 
 - **Normal forms (1NF–BCNF) & when to denormalize** — 3NF is the default; denormalize only on
   measured evidence, with one owning write path keeping copies consistent *(DD-08, AX-18)*.
+- **Timestamp columns** — reach for the timezone-aware type by default; naive datetimes look fine
+  until the first cross-region reader or DST boundary, and durable entities want
+  `created_at`/`updated_at` from day one *(DD-06)*.
+- **Money & enum columns** — a float amount or free-string status column passes review and
+  corrupts later: exact types for quantities, enum types or CHECK constraints for enumerations
+  *(DD-07, AX-08)*.
+- **Field classification at design time** — classify each new column when the schema is designed,
+  not at audit time; retrofitting classification means grepping production data for PII *(DD-14)*.
 - **Migrations as code; forward-only mindset** — versioned, ordered, machine-runnable, committed
   with the feature; an applied migration is immutable — fix forward with a new one, never edit
   history *(DD-10)*.

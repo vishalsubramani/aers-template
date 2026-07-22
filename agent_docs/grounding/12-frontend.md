@@ -5,8 +5,9 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 
 **Load when:** designing or reviewing UI components, client/server state, rendering or performance
 strategy, CSS architecture, forms, accessibility, or i18n/l10n work.
-**Doctrine hooks:** AX-02, AX-03, AX-05, AX-07, AX-08, AX-11, AX-12, AX-14, AX-17, AX-18, AX-20,
-AX-21, AX-22, DD-03, DD-04, DD-06, DD-17, PAT-01, PAT-08, PAT-09, PAT-13, DF-01, DF-04
+**Doctrine hooks:** AX-01, AX-02, AX-03, AX-04, AX-05, AX-06, AX-07, AX-08, AX-09, AX-11, AX-12,
+AX-14, AX-17, AX-18, AX-20, AX-21, AX-22, DD-03, DD-04, DD-06, DD-17, PAT-01, PAT-08, PAT-09,
+PAT-13, DF-01, DF-04
 
 ## Design checklist
 
@@ -61,8 +62,9 @@ AX-21, AX-22, DD-03, DD-04, DD-06, DD-17, PAT-01, PAT-08, PAT-09, PAT-13, DF-01,
 - **Immutability in state updates** — in-place mutation breaks change detection and memoization
   silently; treat state as immutable everywhere, not just where the framework complains
   *(AX-12)*.
-- **Keys & reconciliation; the virtual DOM** — index-as-key on reorderable or filterable lists
-  corrupts input and animation state; keys must be stable identity, never position *(DD-04)*.
+- **Keys & reconciliation; the virtual DOM** — the virtual DOM diffs by key, so index-as-key on
+  reorderable or filterable lists reuses the wrong nodes and corrupts input and animation state;
+  keys must be stable identity, never position *(DD-04)*.
 - **Memoization & referential-equality footguns** — any inline object, array, or closure prop
   defeats memo; profile before and after instead of sprinkling it everywhere *(AX-18)*.
 - **Error boundaries** — place one per route or feature region so one widget's crash cannot
@@ -143,7 +145,7 @@ AX-21, AX-22, DD-03, DD-04, DD-06, DD-17, PAT-01, PAT-08, PAT-09, PAT-13, DF-01,
   cannot regress per component; honor reduced-motion — it is vestibular safety, not
   preference.
 - **Screen reader testing** — automated checkers catch under half of accessibility issues; walk
-  critical flows with a real screen reader before claiming them accessible *(AX-16)*.
+  critical flows with a real screen reader before claiming them accessible.
 - **Accessible forms (labels, error announcements)** — every input gets a programmatic label;
   errors link via `aria-describedby` and announce through a live region, not just red paint.
 - **i18n (ICU messages, pluralization rules, RTL layouts)** — never concatenate translated

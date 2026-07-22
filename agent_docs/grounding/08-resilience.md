@@ -5,8 +5,8 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 
 **Load when:** designing or reviewing any remote call, retry/queue/cache path, overload or
 capacity plan, deploy/shutdown lifecycle, HA/DR posture, or an incident-driven fix.
-**Doctrine hooks:** AX-09, AX-10, AX-11, AX-22, PAT-05, PAT-07, PAT-08, PAT-09, PAT-15,
-PAT-17, PAT-20, DD-15, DF-05
+**Doctrine hooks:** AX-09, AX-10, AX-11, AX-14, AX-22, DD-15, PAT-05, PAT-07, PAT-08, PAT-09,
+PAT-15, PAT-17, PAT-20, DF-05
 
 ## Design checklist
 

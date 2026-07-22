@@ -6,8 +6,9 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 **Load when:** adding a second datastore, cache, or read path; designing replication/failover,
 partitioning/sharding, a NoSQL/search/vector/time-series store, an analytics pipeline, or any
 cache or CDN layer.
-**Doctrine hooks:** DD-08, DD-09, DD-12, DD-14, DD-16, DD-17, DD-18, AX-01, AX-09, AX-10,
-AX-18, PAT-08, PAT-09, PAT-11, DF-02, DF-05, DF-06
+**Doctrine hooks:** AX-01, AX-09, AX-10, AX-11, AX-18, DD-01, DD-02, DD-03, DD-06, DD-08, DD-09,
+DD-12, DD-13, DD-14, DD-15, DD-16, DD-17, DD-18, PAT-08, PAT-09, PAT-11, PAT-17, PAT-20, DF-02,
+DF-05, DF-06
 
 ## Design checklist
 
@@ -47,8 +48,9 @@ AX-18, PAT-08, PAT-09, PAT-11, DF-02, DF-05, DF-06
 - **Sharding** — the **key choice** is near-irreversible: pick for even spread and single-shard
   queries; plan **resharding** (consistent hashing, split/merge) day one; expect **hot shards**
   and treat **cross-shard queries**/transactions as designs to avoid *(DD-16, AX-18)*.
-- **CQRS read models** — split read/write models only when read-shape divergence or load proves
-  it; the read side is a rebuildable projection that lags — needs an ADR *(DD-17, DF-02)*.
+- **CQRS read models** — the pattern trade-off lives in 02-patterns-and-architecture; here, the
+  read side is a rebuildable projection that lags — state its staleness bound and rebuild path
+  *(DF-02, DD-17)*.
 - **Materialized views** — the cheapest read model: precomputed inside the same database with a
   stated refresh cadence — reach for one before an external store *(DD-17, DF-02)*.
 - **Polyglot persistence** — every extra store multiplies consistency seams, backup paths, and

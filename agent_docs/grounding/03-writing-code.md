@@ -5,7 +5,8 @@ this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
 
 **Load when:** implementing or reviewing any diff — function structure, error handling, naming,
 commit/branch strategy, or designing the test plan for a task.
-**Doctrine hooks:** AX-08, AX-11, AX-15, AX-16, AX-17, AX-19, AX-20, AX-21, PAT-01, DF-04
+**Doctrine hooks:** AX-02, AX-03, AX-06, AX-08, AX-11, AX-13..AX-16, AX-19..AX-22, DD-01, DD-05,
+DD-07, DD-10, PAT-01, PAT-04, PAT-14, PAT-16, PAT-20, DF-04
 
 ## Design checklist
 
@@ -55,7 +56,8 @@ commit/branch strategy, or designing the test plan for a task.
 - **Assertions & offensive programming** — assert invariants the types can't express so bugs
   fail at the cause, not two modules later; never assert on external input — that's validation.
 - **Comments explain *why*; code explains *what*** — a comment restating the code rots into a
-  lie; reserve comments for constraints, invariants, and why-not-the-obvious-way. *(AX-19)*
+  lie the compiler never checks; in review, treat each comment as a claim to verify against the
+  code it sits on. *(AX-19)*
 - **TODO/FIXME hygiene** — every TODO carries an owner and a ticket or it's a lie the codebase
   tells itself; review comments should reject anonymous ones.
 - **Self-documenting code** — restructure and rename before commenting; if the explanation fits
@@ -81,8 +83,9 @@ commit/branch strategy, or designing the test plan for a task.
   turns a transitive release into an unreviewed deploy. *(AX-21)*
 - **Vendoring tradeoffs** — vendor only for supply-chain isolation or a dead upstream; you
   inherit the update and CVE-patch burden, so record the decision and exit plan in an ADR.
-- **Readability over cleverness** — code is read far more than written; a clever one-liner that
-  needs a comment to decode should be the boring three lines. *(AX-19)*
+- **Readability over cleverness** — when two implementations tie on correctness, ship the one a
+  tired maintainer parses fastest; keystrokes saved now are debugging minutes spent later.
+  *(AX-19)*
 - **Delete code fearlessly (version control remembers)** — commented-out blocks and "just in
   case" branches are noise with a perfect archive already in git. *(AX-20)*
 
@@ -119,25 +122,24 @@ commit/branch strategy, or designing the test plan for a task.
   suffixes) and enforce it in review; renames after data exists are migrations. *(DD-01, DD-10)*
 - **Env vars: SCREAMING_SNAKE_CASE** — with a consistent app prefix to avoid collisions;
   they're part of the declared configuration surface. *(AX-13, PAT-16)*
-- **Branch & commit naming (Conventional Commits)** — machine-parseable `type(scope): summary`
-  enables changelog and semver automation; enforce with a commit lint, not review nagging.
+- **Branch & commit naming (Conventional Commits)** — name branches `type/ticket-slug` so tooling
+  and cleanup can key on them; commit format is Conventional Commits (see Version control) —
+  enforce both with lint, not review nagging.
 - **Test names describe behavior (`should_X_when_Y`)** — a failing test's name should state the
   broken requirement without opening the file; `test_process_2` tells a reviewer nothing.
 
 ## Version control & collaboration
 
-- **Trunk-based development** — default to integrating into main at least daily behind flags;
-  long-lived branches convert merge pain into a delayed, compounding integration test.
-  *(AX-15, PAT-14)*
+- **Trunk-based development** & **short-lived branches** — integrate into main at least daily
+  behind flags; measure branch age, and split or flag-merge anything alive past a few days —
+  branch age is compounding integration debt. *(AX-15, PAT-14)*
 - **Git flow vs GitHub flow** — heavyweight git flow suits versioned/released software; for
   continuously deployed services it adds ceremony branches with no consumer — prefer the simpler
   flow.
-- **Short-lived branches** — measure branch age; anything alive past a few days is drifting from
-  main and should be split or merged behind a flag. *(AX-15)*
 - **Atomic commits** — one logical change per commit that builds and passes tests, so revert and
   bisect operate at the granularity of intent, not archaeology.
-- **Conventional Commits** — the payoff is automated changelogs and release semantics; adopting
-  the format without the automation is pure ceremony.
+- **Conventional Commits** — machine-parseable `type(scope): summary` buys automated changelogs
+  and release semantics; adopting the format without wiring that automation is pure ceremony.
 - **Rebase vs merge; squash policies** — pick one policy repo-wide: never rewrite shared
   history, and don't squash away commit boundaries that bisect would need.
 - **Merge queues** — two green PRs can be red combined; once merge frequency makes that likely,

@@ -1,4 +1,4 @@
-# Grounding — Runtime — concurrency, memory & OS literacy
+# Grounding — Runtime: concurrency, memory & OS literacy
 
 Part of the grounding library (`agent_docs/grounding/README.md`). Doctrine and ADRs are law;
 this file is awareness. Cited IDs (AX/DD/PAT/DF) point at `.agents/doctrine/`.
@@ -12,22 +12,22 @@ PAT-09, PAT-13, PAT-15, PAT-16, PAT-20, DD-16, DF-03
 ## Design checklist
 
 - [ ] Who owns each piece of mutable shared state — a lock, an actor, a single writer, or the
-      database — and is it written down (AX-12)?
+      database — and is it written down? *(AX-12)*
 - [ ] Is each workload CPU-bound or IO-bound, and do the pool/worker model and its sizing match?
-- [ ] Does every blocking wait have a timeout and a cancellation path that actually propagates
-      (AX-09, PAT-05)?
+- [ ] Does every blocking wait have a timeout and a cancellation path that actually propagates?
+      *(AX-09, PAT-05)*
 - [ ] What is bounded — queues, caches, listener sets, connections, spawned tasks? Anything
-      unbounded is a leak or an overload amplifier (PAT-20, PAT-09).
+      unbounded is a leak or an overload amplifier. *(PAT-20, PAT-09)*
 - [ ] What happens on SIGTERM — does the process drain and exit within the orchestrator's grace
-      window, and are exit codes meaningful (AX-11)?
+      window, and are exit codes meaningful? *(AX-11)*
 - [ ] Are container/cgroup memory, CPU, and FD limits known, and is the runtime configured to
       respect them rather than discover them via OOM kill?
 - [ ] Where the contract says "durable," is the write actually fsync'd, not just in the page
       cache?
-- [ ] Is any performance claim backed by a profile or flame graph from a warmed-up process
-      (AX-18)?
+- [ ] Is any performance claim backed by a profile or flame graph from a warmed-up process?
+      *(AX-18)*
 - [ ] Do scheduled jobs survive overlap, missed runs, and DST — locked or idempotent, UTC,
-      alerted (AX-10, PAT-07)?
+      alerted? *(AX-10, PAT-07)*
 
 ## Concurrency & parallelism
 
@@ -55,10 +55,10 @@ PAT-09, PAT-13, PAT-15, PAT-16, PAT-20, DD-16, DF-03
 - **Shared memory vs message passing** — default to immutability and message passing; share
   mutable memory only inside one declared owner. *(AX-12)*
 - **Mutexes, semaphores, condition variables, barriers** — keep critical sections tiny and never
-  do IO under a lock; condition-variable waits go in a loop rechecking the predicate (spurious
-  wakeups are real).
-- **Read–write locks** — pay off only with long reads and rare writes; writer starvation and
-  upgrade deadlocks are common — measure against a plain mutex first. *(AX-18)*
+  do IO under a lock; condition-variable wait discipline lives in 02's Monitor Object entry.
+- **Read–write locks** — pattern trade-offs in 02's Read–Write Lock; the runtime gotcha is the
+  upgrade path — taking read then write deadlocks, so take the write lock up front if you might
+  write. *(AX-12)*
 - **Atomics & compare-and-swap** — fine for single-word flags and counters; two atomics composed
   are not atomic. Reach for them only after a lock is a measured bottleneck. *(AX-18)*
 - **The ABA problem** — CAS reports "unchanged" when a value changed and changed back; recycled
@@ -75,8 +75,8 @@ PAT-09, PAT-13, PAT-15, PAT-16, PAT-20, DD-16, DF-03
 - **Race conditions vs data races** — not the same: data races (unsynchronized access) are
   undefined behavior even when "benign"; race conditions (bad interleavings, check-then-act)
   survive full synchronization — make the check-and-act one atomic step. *(AX-12)*
-- **Deadlocks** — require mutual exclusion, hold-and-wait, no preemption, circular wait; prevent
-  with a global lock ordering — and remember database row locks participate too. *(DD-16)*
+- **Deadlocks** — application mutexes and database row locks form one wait graph: the global
+  acquisition order must span both (04 covers the database side). *(AX-12, DD-16)*
 - **Livelock & starvation** — retry loops can spin forever making no progress; add jittered
   backoff, and check whether one work class can starve another under contention. *(PAT-05)*
 - **Priority inversion** — a low-priority holder blocks a high-priority waiter; suspect it
