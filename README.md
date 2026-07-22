@@ -78,6 +78,13 @@ instead of lowering a gate to finish.
   accepted ADR; kickoff derives foundation ADRs (architecture, data, and
   security baselines) before the first feature, so structure, data shape, and
   security posture are decided deliberately, never improvised mid-task
+- **Grounding library** — the awareness layer beneath the doctrine
+  (`agent_docs/grounding/`): ~900 production-engineering concepts across 20
+  domain files, each phrased as a decision heuristic (when it bites, what the
+  default move is) with per-domain design checklists and doctrine
+  cross-references. A trigger table maps the decision at hand to the one or
+  two files worth loading, so architect and implementer roles get the
+  checklist effect without context bloat
 - **External ledger** — SQLite runtime state with hash-chained events; markdown
   is a view, never authority
 - **Exact scoped writes** — per-task glob write scopes, role rules
@@ -152,7 +159,8 @@ make verify      # all author-visible gates
   policies, schemas, roles, skills, memory, telemetry)
 - `.specify/` — Spec Kit-compatible feature packs: human spec + typed contracts
 - `agent_docs/` — progressive-disclosure operating guides (kickoff, sandbox,
-  memory, context, multi-agent, verification)
+  memory, context, multi-agent, verification) and the grounding library
+  (`agent_docs/grounding/` — trigger-indexed production-engineering awareness)
 - `.claude/` — thin Claude Code adapter: hooks, `/kickoff`, `/specify`,
   `/verify`, reviewer/auditor roles
 - `scripts/aers/` — the executable control plane (`python3 scripts/aers.py --help`)
