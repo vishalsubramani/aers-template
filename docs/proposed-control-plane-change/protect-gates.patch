@@ -1,0 +1,41 @@
+--- a/.agents/policies/protected-paths.json
++++ b/.agents/policies/protected-paths.json
+@@ -22,6 +22,9 @@
+     "scripts/aers.py",
+     "scripts/loop.py",
+     "scripts/run_ready.py",
++    "scripts/checks/**",
++    "Makefile",
++    "docs/proposed-control-plane-change/**",
+     "evals/**"
+   ],
+   "test_patterns": [
+--- a/.claude/settings.json
++++ b/.claude/settings.json
+@@ -23,6 +23,9 @@
+       "Write(./scripts/aers.py)",
+       "Write(./scripts/loop.py)",
+       "Write(./scripts/run_ready.py)",
++      "Write(./scripts/checks/**)",
++      "Write(./Makefile)",
++      "Write(./docs/proposed-control-plane-change/**)",
+       "Write(./evals/**)"
+     ]
+   },
+--- a/CODEOWNERS
++++ b/CODEOWNERS
+@@ -15,6 +15,14 @@
+ /scripts/aers.py                        @org/agent-platform @org/security
+ /scripts/loop.py                        @org/agent-platform @org/security
+ /scripts/run_ready.py                   @org/agent-platform @org/security
++/scripts/checks/                        @org/agent-platform @org/security
++/Makefile                               @org/agent-platform @org/security
++/docs/proposed-control-plane-change/    @org/agent-platform @org/security
++/.specify/specs/                        @org/agent-platform @org/security
++/agent_docs/decision-log.md             @org/agent-platform @org/security
++/agent_docs/grounding/                  @org/agent-platform
++/.github/pull_request_template.md       @org/agent-platform @org/security
++/tests/aers_selftest/                   @org/agent-platform @org/security
+ /aers.toml                              @org/agent-platform @org/security
+ /evals/                                 @org/agent-platform @org/security
+ /SECURITY.md                            @org/security

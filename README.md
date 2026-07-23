@@ -78,6 +78,13 @@ instead of lowering a gate to finish.
   accepted ADR; kickoff derives foundation ADRs (architecture, data, and
   security baselines) before the first feature, so structure, data shape, and
   security posture are decided deliberately, never improvised mid-task
+- **Grounding library** — the awareness layer beneath the doctrine
+  (`agent_docs/grounding/`): ~900 production-engineering concepts across 20
+  domain files, each phrased as a decision heuristic (when it bites, what the
+  default move is) with per-domain design checklists and doctrine
+  cross-references. A trigger table maps the decision at hand to the one or
+  two files worth loading, so architect and implementer roles get the
+  checklist effect without context bloat
 - **External ledger** — SQLite runtime state with hash-chained events; markdown
   is a view, never authority
 - **Exact scoped writes** — per-task glob write scopes, role rules
@@ -88,6 +95,13 @@ instead of lowering a gate to finish.
   network isolation
 - **Differential test gate** — new tests must *fail* on the base commit, so
   test-first work is proven discriminating, not decorative
+- **Decision log + fail-closed gate** — every gated feature carries a
+  vendor-neutral, append-only JSONL record of the decision points, assumptions,
+  and trade-offs the agent made (`agent_docs/decision-log.md`); the gate in
+  `make check` refuses gated features without it, and risky entries (one-way,
+  low-confidence, flagged assumptions) stay red until a named human validates
+  or counters them in the record — humans review the judgment, not every
+  generated line (`docs/decision-log-gate.md`)
 - **Deterministic audit + independent review** — trajectory and diff audit
   before any model-based reviewer; reviewer reports are schema-bound to the
   candidate SHA (no grep-accepted prose)
@@ -152,7 +166,8 @@ make verify      # all author-visible gates
   policies, schemas, roles, skills, memory, telemetry)
 - `.specify/` — Spec Kit-compatible feature packs: human spec + typed contracts
 - `agent_docs/` — progressive-disclosure operating guides (kickoff, sandbox,
-  memory, context, multi-agent, verification)
+  memory, context, multi-agent, verification) and the grounding library
+  (`agent_docs/grounding/` — trigger-indexed production-engineering awareness)
 - `.claude/` — thin Claude Code adapter: hooks, `/kickoff`, `/specify`,
   `/verify`, reviewer/auditor roles
 - `scripts/aers/` — the executable control plane (`python3 scripts/aers.py --help`)

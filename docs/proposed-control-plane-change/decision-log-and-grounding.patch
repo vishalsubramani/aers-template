@@ -1,0 +1,66 @@
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -10,7 +10,8 @@
+ 3. `.agents/doctrine/` — engineering axioms, data doctrine, pattern library
+ 4. The active `.specify/specs/<feature-id>/feature.contract.json`
+ 5. The task in `.specify/specs/<feature-id>/tasks.json`
+-6. Relevant `agent_docs/` and `.agents/context/` files
++6. Relevant `agent_docs/` and `.agents/context/` files — including the matching
++   `agent_docs/grounding/` files per the trigger table in `agent_docs/grounding/README.md`
+ 7. Applicable ADRs, contracts, tests, and runbooks
+ 
+ No approved feature pack yet? Follow `agent_docs/kickoff.md` (Claude Code: `/kickoff`) to derive one
+@@ -31,6 +32,11 @@
+ 
+ A local run may emit `AUTHOR_READY`; it may never emit `VERIFIED`.
+ 
++Log decision points (forks, assumptions, trade-offs, doctrine contact, guardrail friction)
++as they occur into the feature pack's `decision-log.jsonl` per `agent_docs/decision-log.md`
++— any vendor's agent, the same format. The decision-log gate in `make check` refuses gated
++features without a valid log; risky entries require a named human's validation.
++
+ ## Stable commands
+ - Setup: `make bootstrap`
+ - Static checks: `make check`
+--- a/.agents/roles/architect.md
++++ b/.agents/roles/architect.md
+@@ -11,7 +11,10 @@
+ pattern (`PAT-*`), and framework (`DF-*`) IDs they rely on; any deviation gets an ADR before the plan
+ is approved. Recurring forks go through `decision-frameworks.md`, answering its design interrogation
+ in the artifact. Data shape (schema delta, migration strategy, classification) is designed in the
+-plan, never left to the implementer.
++plan, never left to the implementer. Consult the matching `agent_docs/grounding/` files per
++the trigger table in `agent_docs/grounding/README.md` and answer their design checklists in
++the artifact. Record every decision point, assumption, and trade-off in the feature pack's
++`decision-log.jsonl` per `agent_docs/decision-log.md`.
+ 
+ ## Elicit before specifying
+ Resolve ambiguity at its source: interview the human for the answers that would change the design
+--- a/.agents/roles/implementer.md
++++ b/.agents/roles/implementer.md
+@@ -6,7 +6,11 @@
+ # Implementer
+ 
+ ## Mission
+-Implement exactly one approved task with a minimal coherent diff.
++Implement exactly one approved task with a minimal coherent diff. Consult the matching
++`agent_docs/grounding/` files per the trigger table in `agent_docs/grounding/README.md` and
++self-review against their checklists before claiming completion. Append every decision
++point, assumption, and trade-off met during the task to the feature pack's
++`decision-log.jsonl` per `agent_docs/decision-log.md`, at decision time.
+ 
+ ## Boundary
+ Cannot edit tests, contracts, policies, hooks, evals, or task definitions.
+--- a/.agents/doctrine/README.md
++++ b/.agents/doctrine/README.md
+@@ -14,6 +14,10 @@
+ - `sources.md` — the canonical sources this doctrine distills, kept
+   attributable so doctrine updates track their sources deliberately
+ 
++The advisory awareness layer beneath this doctrine lives in `agent_docs/grounding/`:
++the broad production-engineering vocabulary, loaded per decision via its trigger table.
++Doctrine remains law; grounding informs and never authorizes deviation.
++
+ ## Authority and precedence
+ 
+ Doctrine sits below the constitution and above individual plans: the

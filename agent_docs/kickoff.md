@@ -45,7 +45,10 @@ Gemini, Copilot, a human) follows it verbatim.
    complete `spec.md`, `feature.contract.json` (EARS-style acceptance criteria
    with evidence types), and `tasks.json` (test_author before implementer, argv
    command arrays, tight write scopes and budgets), following
-   `.specify/templates/` and `examples/feature-pack/FEAT-001/`.
+   `.specify/templates/` and `examples/feature-pack/FEAT-001/`. Seed each pack
+   with an empty `decision-log.jsonl`; every agent working the feature appends
+   its decision points there per `agent_docs/decision-log.md` (the decision-log
+   gate in `make check` refuses gated features without one).
 5. Present the roadmap and the drafted packs to the human for review. Do not
    implement in this role.
 6. The human approves by editing each `feature.contract.json`: set `status` to
